@@ -32,5 +32,98 @@
 
 ---
 
-## 3) Arquitectura (carpetas y capas)
+
+### 3.2 Stack de Tecnologías (MVP)
+
+- **Lenguaje / Runtime**
+  - Python **3.11+**
+- **Framework Web**
+  - **FastAPI** (API REST) + **Uvicorn** (ASGI server)
+- **Modelado y validación**
+  - **Pydantic** (modelos y DTOs)
+- **Configuración**
+  - **python-dotenv** para variables en `.env`
+- **Procesamiento de documentos**
+  - **PyMuPDF (`pymupdf`)** para PDF (texto nativo, sin OCR)
+  - **python-docx** para DOCX
+- **Cliente de IA**
+  - **openai** (modelo **gpt-4o-mini** con salida JSON estructurada)
+- **Subida de archivos**
+  - **python-multipart** (multipart/form-data)
+- **Middleware / utilidades**
+  - **CORS** (Starlette/FastAPI)
+  - **Middleware de timing** (tiempo de procesamiento por request)
+- **Observabilidad (básico)**
+  - Headers `X-Processing-Time-ms`, logs de errores
+- **Pruebas**
+  - Swagger UI (`/docs`), `curl`/Postman/Thunder Client
+- **Roadmap opcional**
+  - **Caché** (SQLite/Redis) por `raw_text_hash`
+  - **Rate limiting / Backoff** para 429
+  - **Logging estructurado** (JSON) + `request-id`
+  - **OCR** (Tesseract) para PDFs escaneados (fase posterior)
+
+---
+
+## 4) Flujo del algoritmo (texto para graficar)
+
+> **Descripción textual del flujo**, lista para que la conviertas en imágenes/diagramas.
+
+1. **Recepción del archivo**
+   - El cliente hace `POST /extract` enviando un **PDF** o **DOCX** (texto, no imagen).
+   - Parámetros opcionales: `view=compact|full` y `reveal_id=true|false`.
+
+2. **Ingesta y normalización**
+   - Si es PDF, se extrae **texto** con PyMuPDF; si es DOCX, con `python-docx`.
+   - Se **normalizan** espacios/saltos para obtener un texto plano limpio.
+
+3. **Cálculo de hash y metadatos**
+   - Se calcula `raw_text_hash` (SHA-256) para trazabilidad/cache.
+   - Se determinan páginas, tamaño, extensión y nombre del archivo.
+
+4. **Heurística rápida del acto**
+   - Se busca la presencia de términos (p. ej., “poder”, “escritura pública”) para obtener un **`is_poder_guess`** (0–1) que orienta la clasificación.
+
+5. **Preparación de prompt para IA**
+   - Se define un **`json_schema`** de salida (estructura exacta esperada).
+   - Se incluyen **reglas** (lectura secuencial, priorización de DNI, domicilio de persona activa, fecha top-level, roles por bisagra “otorga … a favor de …”).
+   - Se agregan **few-shots** mínimos (ejemplos cortos y claros).
+   - Se exige **modo JSON estricto** (sin texto adicional).
+
+6. **Llamada al modelo de IA**
+   - Se envía el **texto normalizado** + `json_schema` + reglas/few-shots al modelo de IA.
+   - El modelo devuelve un **JSON** con acto, fecha y personas (otorgantes/beneficiarios/indeterminados), incluyendo documentos y domicilio.
+
+7. **Sanitizado del JSON de IA**
+   - Se garantiza que `otorgantes[]` y `beneficiarios[]` sean **listas válidas** de personas.
+   - Se coloca `fecha_minuta` en **top-level** y se intenta estandarizar a `YYYY-MM-DD`.
+   - Se consolidan documentos: **DNI** como principal; otros en `docs_adicionales`.
+   - Se aceptan personas en `indeterminados[]` si no hubo bisagra clara.
+
+8. **Validaciones locales y confianza**
+   - Se validan **DNI/RUC** por formato (regex) y se ajusta `confidence.campos`.
+   - Se valida **fecha** (ES→ISO) y se ajusta confianza si es válida.
+   - Se combina la salida del modelo con la **heurística local** para `clasificacion_acto`.
+
+9. **Formateo de la respuesta**
+   - Si `view=full`: se retorna el JSON **completo** (`mapped` + `evidence` + `confidence`).
+   - Si `view=compact`: se retorna un **resumen legible** (acto, fecha, nombre completo, doc principal —enmascarado por defecto— y dirección).
+   - Se incluyen metadatos (`model`, `processing_ms`, `filename`, `text_hash`) y `warnings/errors` si corresponde.
+
+10. **Entrega**
+    - Se responde al cliente con la estructura:
+      ```
+      {
+        "ok": true,
+        "meta": { ... },
+        "view": "compact|full",
+        "data": { ... },
+        "errors": [],
+        "warnings": []
+      }
+      ```
+    - *(Opcional futuro)*: se registra en **caché** por `raw_text_hash` para evitar recomputar el mismo documento y resistir límites de cuota.
+
+## 5) DIAGRAMA
+<img width="1337" height="608" alt="image" src="https://github.com/user-attachments/assets/2410c813-7b01-4665-8c1c-bf2d0393d409" />
 
