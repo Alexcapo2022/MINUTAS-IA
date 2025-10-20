@@ -113,153 +113,79 @@
 10. **Entrega**
     - Se responde al cliente con la estructura:
       ```
-          {
+              {
       "ok": true,
       "meta": {
         "model": "gpt-4o-mini",
-        "processing_ms": 1180,
-        "pages": 2,
-        "filename": "MINUTA_FICTICIA.docx",
-        "text_hash": "e2a49f1c1f7a4f778c3a1e6eb7a9c1b3..."
+        "filename": "minuta-demo.docx",
+        "pages": 1
       },
-      "view": "full",
+      "view": "summary",
       "data": {
-        "ok": true,
-        "filename": "MINUTA_FICTICIA.docx",
-        "extension": ".docx",
-        "pages": 2,
-        "bytes_size": 84213,
-        "text_preview": "Señor Notario: Sírvase extender en su Registro de Escrituras Públicas un poder que otorgan VALERIA LUCÍA RIVERA GUTIÉRREZ y MARIO ENRIQUE RIVERA GUTIÉRREZ...",
-        "text_hash_sha256": "e2a49f1c1f7a4f778c3a1e6eb7a9c1b3...",
-        "is_poder_guess": 0.66,
-        "mapped": {
-          "acto": "PODER",
-          "generales_ley": {
-            "otorgantes": [
-              {
-                "nombres": "VALERIA LUCÍA",
-                "apellido_paterno": "RIVERA",
-                "apellido_materno": "GUTIÉRREZ",
-                "nacionalidad": "peruana",
-                "tipo_documento": "DNI",
-                "numero_documento": "45678421",
-                "docs_adicionales": [],
-                "profesion_ocupacion": "Arquitecta",
-                "estado_civil": "Soltera",
-                "domicilio": {
-                  "direccion": "Av. Los Nogales 540, Miraflores",
-                  "ubigeo": "",
-                  "distrito": "Miraflores",
-                  "provincia": "Lima",
-                  "departamento": "Lima"
-                },
-                "role": "otorgante",
-                "evidence": {
-                  "nombres": {
-                    "evidence_text": "VALERIA LUCÍA RIVERA GUTIÉRREZ",
-                    "char_span": [124, 156]
-                  },
-                  "numero_documento": {
-                    "evidence_text": "DNI N.º 45678421",
-                    "char_span": [212, 226]
-                  },
-                  "domicilio.direccion": {
-                    "evidence_text": "con domicilio en Av. Los Nogales 540, Miraflores",
-                    "char_span": [260, 306]
-                  },
-                  "profesion_ocupacion": {
-                    "evidence_text": "de profesión Arquitecta",
-                    "char_span": [308, 331]
-                  }
-                }
-              },
-              {
-                "nombres": "MARIO ENRIQUE",
-                "apellido_paterno": "RIVERA",
-                "apellido_materno": "GUTIÉRREZ",
-                "nacionalidad": "peruana",
-                "tipo_documento": "DNI",
-                "numero_documento": "78231098",
-                "docs_adicionales": [],
-                "profesion_ocupacion": "Contador",
-                "estado_civil": "Casado",
-                "domicilio": {
-                  "direccion": "Av. Los Nogales 540, Miraflores",
-                  "ubigeo": "",
-                  "distrito": "Miraflores",
-                  "provincia": "Lima",
-                  "departamento": "Lima"
-                },
-                "role": "otorgante",
-                "evidence": {
-                  "nombres": {
-                    "evidence_text": "MARIO ENRIQUE RIVERA GUTIÉRREZ",
-                    "char_span": [159, 191]
-                  },
-                  "numero_documento": {
-                    "evidence_text": "DNI N.º 78231098",
-                    "char_span": [233, 247]
-                  },
-                  "estado_civil": {
-                    "evidence_text": "declara estado civil casado",
-                    "char_span": [332, 357]
-                  }
-                }
-              }
-            ],
-            "beneficiarios": [
-              {
-                "nombres": "SANDRA ELENA",
-                "apellido_paterno": "BARRIOS",
-                "apellido_materno": "SOTO",
-                "nacionalidad": "peruana",
-                "tipo_documento": "DNI",
-                "numero_documento": "33946673",
-                "docs_adicionales": [],
-                "profesion_ocupacion": "",
-                "estado_civil": "",
-                "domicilio": {
-                  "direccion": "Calle Arboleda 112, Barranco",
-                  "ubigeo": "",
-                  "distrito": "Barranco",
-                  "provincia": "Lima",
-                  "departamento": "Lima"
-                },
-                "role": "beneficiario",
-                "evidence": {
-                  "nombres": {
-                    "evidence_text": "a favor de SANDRA ELENA BARRIOS SOTO",
-                    "char_span": [402, 438]
-                  },
-                  "numero_documento": {
-                    "evidence_text": "identificada con DNI 33946673",
-                    "char_span": [441, 468]
-                  },
-                  "domicilio.direccion": {
-                    "evidence_text": "con domicilio en Calle Arboleda 112, Barranco",
-                    "char_span": [472, 516]
-                  }
-                }
-              }
-            ],
-            "indeterminados": []
-          },
-          "fecha_minuta": "2023-11-28",
-          "confidence": {
-            "clasificacion_acto": 0.91,
-            "campos": {
-              "generales_ley.otorgantes[0].numero_documento": 0.9,
-              "generales_ley.otorgantes[1].numero_documento": 0.9,
-              "generales_ley.beneficiarios[0].numero_documento": 0.9,
-              "fecha_minuta": 0.9
+        "acto": "PODER",
+        "fecha_minuta": "2025-09-30",
+        "poderdantes_count": 2,
+        "apoderados_count": 1,
+        "poderdantes": [
+          {
+            "nombres": "ALEXANDER",
+            "apellido_paterno": "CRUZ",
+            "apellido_materno": "MARTICORENA",
+            "nacionalidad": "PERUANA",
+            "tipo_documento": "DNI",
+            "numero_documento": "72924493",
+            "profesion_ocupacion": "INGENIERO DE SISTEMAS",
+            "estado_civil": "SOLTERO",
+            "domicilio": {
+              "direccion": "Jr. Cerro Prieto 116",
+              "distrito": "Santiago de Surco",
+              "provincia": "Lima",
+              "departamento": "Lima",
+              "ubigeo": ""
             }
           },
-          "raw_text_hash": "e2a49f1c1f7a4f778c3a1e6eb7a9c1b3..."
-        }
+          {
+            "nombres": "PEITO",
+            "apellido_paterno": "MARTINEZ",
+            "apellido_materno": "RODRIGUEZ",
+            "nacionalidad": "PERUANA",
+            "tipo_documento": "DNI",
+            "numero_documento": "12345678",
+            "profesion_ocupacion": "EMPLEADO",
+            "estado_civil": "CASADO",
+            "domicilio": {
+              "direccion": "Av. Las Palmeras 450",
+              "distrito": "San Miguel",
+              "provincia": "Lima",
+              "departamento": "Lima",
+              "ubigeo": ""
+            }
+          }
+        ],
+        "apoderados": [
+          {
+            "nombres": "CAMILA",
+            "apellido_paterno": "TORRES",
+            "apellido_materno": "VEGA",
+            "nacionalidad": "PERUANA",
+            "tipo_documento": "DNI",
+            "numero_documento": "44556677",
+            "profesion_ocupacion": "ABOGADA",
+            "estado_civil": "SOLTERA",
+            "domicilio": {
+              "direccion": "Calle Los Nogales 210",
+              "distrito": "Miraflores",
+              "provincia": "Lima",
+              "departamento": "Lima",
+              "ubigeo": ""
+            }
+          }
+        ]
       },
       "errors": [],
       "warnings": []
     }
+
 
       ```
     - *(Opcional futuro)*: se registra en **caché** por `raw_text_hash` para evitar recomputar el mismo documento y resistir límites de cuota.
