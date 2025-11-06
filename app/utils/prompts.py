@@ -71,3 +71,62 @@ Instrucciones obligatorias:
 Texto de entrada:
 \"\"\"{contenido}\"\"\"
 """.strip()
+
+def build_constitucion_prompt(contenido: str, fecha_minuta_hint: str | None = None) -> str:
+    schema = """
+Devuelve SOLO un JSON válido EXACTAMENTE con este esquema:
+
+{
+  "tipoDocumento": "Constitución de Empresa",
+  "tipoSociedad": "EIRL|SRL|SAC|SA|Otra",
+  "fechaMinuta": "YYYY-MM-DD",
+
+  "otorgantes": [
+  {
+    "nombres": "string",
+    "apellidoPaterno": "string",
+    "apellidoMaterno": "string",
+    "documento": { "tipo": "DNI|CE|PAS", "numero": "string" },
+    "nacionalidad": "string",
+    "estadoCivil": "string",
+    "domicilio": {
+      "direccion": "string",
+      "ubigeo": { "departamento": "string", "provincia": "string", "distrito": "string" }
+    },
+    "porcentajeParticipacion": 0.0,
+    "accionesSuscritas": 0,
+    "montoAportado": 0.0,
+    "rol": "Titular|Socio|Accionista|Transferente"
+  }
+],
+
+  "beneficiario": {
+    "razonSocial": "string",            // aquí va la denominación social
+    "direccion": "string",              // domicilio del beneficiario
+    "ubigeo": { "departamento": "string", "provincia": "string", "distrito": "string" },
+    "ciiu": ["string"]                  // SOLO descripciones, sin códigos
+  },
+
+  "transferencia": [
+    { "moneda": "PEN|USD|EUR", "monto": 0.0, "formaPago": "Depósito|Transferencia|Efectivo|Crédito|Otro", "oportunidadPago": "string" }
+  ],
+
+  "medioPago": [
+    { "medio": "Transferencia|Cheque|Depósito|Efectivo|Otro", "moneda": "PEN|USD|EUR", "valorBien": 0.0 }
+  ],
+
+  "bien": [
+    { "tipo": "Mueble|Inmueble|Dinero|Otro", "clase": "string", "otrosBienesNoEspecificados": "string" }
+  ]
+}
+
+Reglas:
+- Nada de explicaciones ni markdown; SOLO JSON.
+- Si no aparece un dato: "" para strings, 0/0.0 para números, [] para listas.
+- ciiu: SOLO descripciones (sin códigos).
+"""
+    hint = f"\nHint_fechaMinuta: {fecha_minuta_hint}\n" if fecha_minuta_hint else ""
+    return f"""{schema}
+--- CONTENIDO EXTRAÍDO (texto plano) ---
+{contenido}
+{hint}"""
