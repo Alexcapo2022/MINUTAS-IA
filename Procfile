@@ -1,1 +1,1 @@
-web: gunicorn -k uvicorn.workers.UvicornWorker -w ${WEB_CONCURRENCY:-2} -b 0.0.0.0:$PORT main:app
+web: python -m uvicorn main:app --host 0.0.0.0 --port $PORT
