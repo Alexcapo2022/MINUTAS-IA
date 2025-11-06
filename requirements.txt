@@ -1,6 +1,9 @@
 fastapi
 uvicorn[standard]
+gunicorn
 pydantic-settings
 python-dotenv
 openai==1.*
 httpx
+pypdf
+python-docx
