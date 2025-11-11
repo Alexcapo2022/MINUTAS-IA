@@ -1,14 +1,18 @@
+# imports iguales...
 from typing import List, Literal, Optional
 from fastapi import UploadFile
 from pydantic import BaseModel
-from app.utils.ingestion import get_text_from_upload  # PDF/DOC/DOCX -> texto
+from app.utils.ingestion import get_text_from_upload
 from app.utils.gpt_client import extract_constitucion_text
 from app.utils.parsing import normalize_payload
 
 Moneda = Literal["PEN", "USD", "EUR"]
 Rol = Literal["Titular", "Socio", "Accionista", "Transferente"]
 TipoDoc = Literal["DNI", "CE", "PAS"]
-TipoBien = Literal["Mueble", "Inmueble", "Dinero", "Otro"]
+
+# 👇 Ampliamos para permitir el default requerido
+TipoBien = Literal["Mueble", "Inmueble", "Dinero", "Otro", "BIENES"]
+
 MedioPago = Literal["Transferencia", "Cheque", "Depósito", "Efectivo", "Otro"]
 FormaPago = Literal["Depósito", "Transferencia", "Efectivo", "Crédito", "Otro"]
 
@@ -25,7 +29,6 @@ class DocumentoIdentidad(BaseModel):
     tipo: Literal["DNI", "CE", "PAS"]
     numero: str
 
-
 class Otorgante(BaseModel):
     nombres: str = ""
     apellidoPaterno: str = ""
@@ -37,13 +40,15 @@ class Otorgante(BaseModel):
     porcentajeParticipacion: float = 0.0
     accionesSuscritas: int = 0
     montoAportado: float = 0.0
-    genero: Literal["MASCULINO", "FEMENINO"]              # 👈 NUEVO (binario)
+    genero: Literal["MASCULINO", "FEMENINO"]            # <- agregado
     rol: Literal["Titular","Socio","Accionista","Transferente"]
+
 class Beneficiario(BaseModel):
     razonSocial: str = ""
     direccion: str = ""
     ubigeo: Ubigeo = Ubigeo()
-    ciiu: List[str] = []  # solo descripciones
+    # Ahora explicitar que guardaremos SOLO 1 categoría de la lista oficial
+    ciiu: List[str] = []  # contendrá exactamente 1 ítem del catálogo oficial
 
 class Transferencia(BaseModel):
     moneda: Moneda
@@ -82,7 +87,40 @@ async def parse_constitucion(file: UploadFile) -> ConstitucionResponse:
     """
     Recibe PDF o Word (DOC/DOCX) y retorna el JSON estructurado.
     """
-    texto = await get_text_from_upload(file)  # igual que poder: maneja PDF/DOC/DOCX
+    texto = await get_text_from_upload(file)
     raw = await extract_constitucion_text(contenido=texto, fecha_minuta_hint=None)
     cleaned = normalize_payload(raw)
+
+    # --- Blindajes mínimos ---
+
+    # CIIU: garantizar exactamente 1 categoría si el modelo devolvió 0 o más de 1.
+    # (El prompt ya obliga a 1, esto es sólo cinturón de seguridad)
+    if "beneficiario" in cleaned:
+        ciiu = (cleaned["beneficiario"] or {}).get("ciiu") or []
+        if not isinstance(ciiu, list):
+            ciiu = [str(ciiu)]
+        if len(ciiu) == 0:
+            # fallback neutro (elige una por defecto si el modelo no devolvió nada)
+            ciiu = ["ACTIVIDADES INMOBILIARIAS, EMPRESARIALES Y DE ALQUILER"]
+        else:
+            ciiu = [str(ciiu[0])]
+        cleaned["beneficiario"]["ciiu"] = ciiu
+
+    # Bien: si está vacío o faltan campos, aplicar defaults requeridos
+    b = cleaned.get("bien") or []
+    if not b:
+        b = [{
+            "tipo": "BIENES",
+            "clase": "OTROS NO ESPECIFICADOS",
+            "otrosBienesNoEspecificados": "CAPITAL"
+        }]
+    else:
+        # Completar faltantes en el primer bien
+        b0 = dict(b[0])
+        b0["tipo"] = b0.get("tipo") or "BIENES"
+        b0["clase"] = b0.get("clase") or "OTROS NO ESPECIFICADOS"
+        b0["otrosBienesNoEspecificados"] = b0.get("otrosBienesNoEspecificados") or "CAPITAL"
+        b = [b0]
+    cleaned["bien"] = b
+
     return ConstitucionResponse(**cleaned)
