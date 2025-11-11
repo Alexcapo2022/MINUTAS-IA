@@ -1,4 +1,7 @@
-SCHEMA_JSON = """
+# app/utils/prompts.py
+from typing import Optional
+
+SCHEMA_PODER_JSON = """
 {
   "tipoMinuta": "PODER",
   "fechaMinuta": "YYYY-MM-DD|null",
@@ -20,6 +23,7 @@ SCHEMA_JSON = """
           "departamento": ""
         }
       },
+      "genero": "MASCULINO|FEMENINO",
       "rol": "PODERDANTE"
     }
   ],
@@ -32,7 +36,7 @@ SCHEMA_JSON = """
       "tipoDocumento": "DNI|CE|PASAPORTE|OTRO",
       "numeroDocumento": "",
       "profesionOcupacion": "",
-      "estadoCivil": "",
+      "estadoCivil": "SOLTERO|CASADO|DIVORCIADO|VIUDO|CONVIVIENTE|SEPARADO|NO_PRECISADO",
       "domicilio": {
         "direccion": "",
         "ubigeo": {
@@ -41,21 +45,28 @@ SCHEMA_JSON = """
           "departamento": ""
         }
       },
+      "genero": "MASCULINO|FEMENINO",
       "rol": "APODERADO"
     }
   ]
 }
 """.strip()
 
-def build_poder_prompt(contenido: str, fecha_minuta_hint: str | None):
-    fecha_text = f"La fecha de minuta, si se infiere, usar formato YYYY-MM-DD. Hint: {fecha_minuta_hint}." if fecha_minuta_hint else \
-                 "La fecha de minuta, si se infiere, usar formato YYYY-MM-DD. Si no existe, usar null."
+
+def build_poder_prompt(contenido: str, fecha_minuta_hint: Optional[str]) -> str:
+    fecha_text = (
+        f"La fecha de minuta, si se infiere, usar formato YYYY-MM-DD. Hint: {fecha_minuta_hint}."
+        if fecha_minuta_hint
+        else "La fecha de minuta, si se infiere, usar formato YYYY-MM-DD. Si no existe, usar null."
+    )
+
+    # La IA INFIERTE el género (binario) y lo inserta en el JSON final
     return f"""
 Eres un extractor de datos notariales. A partir del texto de una minuta de PODER, devuelve EXCLUSIVAMENTE un JSON válido
 con el siguiente esquema (sin comentarios adicionales, sin texto fuera del JSON):
 
 Esquema:
-{SCHEMA_JSON}
+{SCHEMA_PODER_JSON}
 
 Instrucciones obligatorias:
 - Identifica N otorgantes (rol = PODERDANTE) y N beneficiarios (rol = APODERADO).
@@ -66,6 +77,13 @@ Instrucciones obligatorias:
 - Dirección/Ubigeo: si no se indica provincia/departamento y el texto refiere Lima explícitamente, usa "Lima".
 - {fecha_text}
 - Si un dato no aparece, deja "" o null según el esquema.
+
+- **Género (OBLIGATORIO y BINARIO)**:
+  * NO lo copies literalmente del documento.
+  * **Debes INFERIR** el género evaluando nombres, pronombres, tratamientos (Sr., Sra., Don, Doña) y el contexto.
+  * Valores permitidos **solo**: "MASCULINO" o "FEMENINO".
+  * Si es ambiguo, elige el más probable según el uso del español peruano y el contexto del documento. No uses valores alternos.
+
 - Devuelve únicamente el JSON final. Nada más.
 
 Texto de entrada:

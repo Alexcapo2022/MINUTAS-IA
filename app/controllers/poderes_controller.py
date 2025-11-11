@@ -7,6 +7,10 @@ from app.utils.parsing import normalize_payload
 
 # ==== MODELOS DE RESPUESTA ====
 
+# ...tus imports
+from pydantic import BaseModel
+from typing import List, Literal, Optional
+
 class Ubigeo(BaseModel):
     distrito: str = ""
     provincia: str = ""
@@ -26,6 +30,7 @@ class Persona(BaseModel):
     profesionOcupacion: str = ""
     estadoCivil: str = ""
     domicilio: Domicilio = Domicilio()
+    genero: Literal["MASCULINO", "FEMENINO"]  # <- NUEVO
     rol: Literal["PODERDANTE","APODERADO"]
 
 class PoderResponse(BaseModel):
@@ -33,6 +38,7 @@ class PoderResponse(BaseModel):
     fechaMinuta: Optional[str] = None
     otorgantes: List[Persona]
     beneficiarios: List[Persona]
+
 
 # ==== FUNCIÓN PRINCIPAL ====
 
