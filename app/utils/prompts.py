@@ -90,7 +90,7 @@ Texto de entrada:
 \"\"\"{contenido}\"\"\"
 """.strip()
 
-def build_constitucion_prompt(contenido: str, fecha_minuta_hint: str | None = None) -> str:
+def build_constitucion_prompt(contenido: str, fecha_minuta_hint: Optional[str] = None) -> str:
     schema = """
 Devuelve SOLO un JSON válido EXACTAMENTE con este esquema:
 
@@ -100,29 +100,30 @@ Devuelve SOLO un JSON válido EXACTAMENTE con este esquema:
   "fechaMinuta": "YYYY-MM-DD",
 
   "otorgantes": [
-  {
-    "nombres": "string",
-    "apellidoPaterno": "string",
-    "apellidoMaterno": "string",
-    "documento": { "tipo": "DNI|CE|PAS", "numero": "string" },
-    "nacionalidad": "string",
-    "estadoCivil": "string",
-    "domicilio": {
-      "direccion": "string",
-      "ubigeo": { "departamento": "string", "provincia": "string", "distrito": "string" }
-    },
-    "porcentajeParticipacion": 0.0,
-    "accionesSuscritas": 0,
-    "montoAportado": 0.0,
-    "rol": "Titular|Socio|Accionista|Transferente"
-  }
-],
+    {
+      "nombres": "string",
+      "apellidoPaterno": "string",
+      "apellidoMaterno": "string",
+      "documento": { "tipo": "DNI|CE|PAS", "numero": "string" },
+      "nacionalidad": "string",
+      "estadoCivil": "string",
+      "domicilio": {
+        "direccion": "string",
+        "ubigeo": { "departamento": "string", "provincia": "string", "distrito": "string" }
+      },
+      "porcentajeParticipacion": 0.0,
+      "accionesSuscritas": 0,
+      "montoAportado": 0.0,
+      "genero": "MASCULINO|FEMENINO",
+      "rol": "Titular|Socio|Accionista|Transferente"
+    }
+  ],
 
   "beneficiario": {
-    "razonSocial": "string",            // aquí va la denominación social
-    "direccion": "string",              // domicilio del beneficiario
+    "razonSocial": "string",
+    "direccion": "string",
     "ubigeo": { "departamento": "string", "provincia": "string", "distrito": "string" },
-    "ciiu": ["string"]                  // SOLO descripciones, sin códigos
+    "ciiu": ["string"]
   },
 
   "transferencia": [
@@ -142,6 +143,14 @@ Reglas:
 - Nada de explicaciones ni markdown; SOLO JSON.
 - Si no aparece un dato: "" para strings, 0/0.0 para números, [] para listas.
 - ciiu: SOLO descripciones (sin códigos).
+- fechaMinuta: si no puede inferirse, usa "" (cadena vacía).
+- Documento: conserva solo dígitos para DNI/CE cuando aplique (si no, deja tal cual).
+- Domicilio/Ubigeo: si el texto refiere Lima explícitamente sin provincia/departamento, usa "Lima" en ambos.
+- Género (OBLIGATORIO y BINARIO):
+  * NO lo copies literalmente del documento.
+  * Debes INFERIR el género evaluando nombres, pronombres y tratamientos (Sr., Sra., Don, Doña), y el contexto del texto.
+  * Valores permitidos **solo**: "MASCULINO" o "FEMENINO".
+  * Si es ambiguo, selecciona el más probable según uso en español peruano y el contexto del documento; no uses valores alternos.
 """
     hint = f"\nHint_fechaMinuta: {fecha_minuta_hint}\n" if fecha_minuta_hint else ""
     return f"""{schema}

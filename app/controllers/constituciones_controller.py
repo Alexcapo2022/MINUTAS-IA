@@ -33,12 +33,12 @@ class Otorgante(BaseModel):
     documento: DocumentoIdentidad
     nacionalidad: str = ""
     estadoCivil: str = ""
-    domicilio: DomicilioObj = DomicilioObj()   # <<--- AHORA OBJETO
+    domicilio: DomicilioObj = DomicilioObj()
     porcentajeParticipacion: float = 0.0
     accionesSuscritas: int = 0
     montoAportado: float = 0.0
+    genero: Literal["MASCULINO", "FEMENINO"]              # 👈 NUEVO (binario)
     rol: Literal["Titular","Socio","Accionista","Transferente"]
-
 class Beneficiario(BaseModel):
     razonSocial: str = ""
     direccion: str = ""
