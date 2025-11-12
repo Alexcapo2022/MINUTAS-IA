@@ -6,15 +6,18 @@ from app.utils.ingestion import get_text_from_upload
 from app.utils.gpt_client import extract_constitucion_text
 from app.utils.parsing import normalize_payload
 
-Moneda = Literal["PEN", "USD", "EUR"]
+# ============================
+# Tipos y modelos
+# ============================
+
+Moneda = Literal["SOLES", "DOLARES AMERICANOS", "EUROS"]
 Rol = Literal["Titular", "Socio", "Accionista", "Transferente"]
 TipoDoc = Literal["DNI", "CE", "PAS"]
-
-# 👇 Ampliamos para permitir el default requerido
 TipoBien = Literal["Mueble", "Inmueble", "Dinero", "Otro", "BIENES"]
 
 MedioPago = Literal["Transferencia", "Cheque", "Depósito", "Efectivo", "Otro"]
-FormaPago = Literal["Depósito", "Transferencia", "Efectivo", "Crédito", "Otro"]
+# Agregamos "Contado" como forma de pago válida (aunque transferencia única lo usará por defecto)
+FormaPago = Literal["Depósito", "Transferencia", "Efectivo", "Crédito", "Otro", "Contado"]
 
 class Ubigeo(BaseModel):
     departamento: str = ""
@@ -40,21 +43,22 @@ class Otorgante(BaseModel):
     porcentajeParticipacion: float = 0.0
     accionesSuscritas: int = 0
     montoAportado: float = 0.0
-    genero: Literal["MASCULINO", "FEMENINO"]            # <- agregado
+    genero: Literal["MASCULINO", "FEMENINO"]
     rol: Literal["Titular","Socio","Accionista","Transferente"]
 
 class Beneficiario(BaseModel):
     razonSocial: str = ""
     direccion: str = ""
     ubigeo: Ubigeo = Ubigeo()
-    # Ahora explicitar que guardaremos SOLO 1 categoría de la lista oficial
-    ciiu: List[str] = []  # contendrá exactamente 1 ítem del catálogo oficial
+    # Guardaremos EXACTAMENTE 1 categoría del catálogo (el prompt ya lo fuerza; aquí blindamos)
+    ciiu: List[str] = []
 
 class Transferencia(BaseModel):
     moneda: Moneda
     monto: float = 0.0
-    formaPago: FormaPago
-    oportunidadPago: str = ""
+    # Defaults exigidos
+    formaPago: FormaPago = "Contado"
+    oportunidadPago: str = "A LA FIRMA DEL INSTRUMENTO PÚBLICO PROTOCOLAR"
 
 class MedioPagoItem(BaseModel):
     medio: MedioPago
@@ -68,7 +72,7 @@ class Bien(BaseModel):
 
 class CapitalSocial(BaseModel):
     monto: float = 0.0
-    moneda: Moneda = "PEN"
+    moneda: Moneda = "SOLES"
     accionesTotales: int = 0
 
 class ConstitucionResponse(BaseModel):
@@ -83,8 +87,41 @@ class ConstitucionResponse(BaseModel):
     medioPago: List[MedioPagoItem] = []
     bien: List[Bien] = []
 
-    # 🔹 nuevo campo:
-    transferenciaTotal: float = 0.0
+
+# ============================
+# Helpers de normalización
+# ============================
+
+def _norm_moneda(x: str) -> str:
+    s = (x or "").strip().upper()
+    # SOLES
+    if any(k in s for k in ["PEN", "SOL", "SOLES", "S/", "S/."]):
+        return "SOLES"
+    # DÓLARES
+    if any(k in s for k in ["USD", "US$", "USD$", "DOLAR", "DÓLAR", "DOLARES", "DÓLARES", "$"]):
+        return "DOLARES AMERICANOS"
+    # EUROS
+    if any(k in s for k in ["EUR", "€", "EURO", "EUROS"]):
+        return "EUROS"
+    # Fallback razonable
+    return "SOLES"
+
+def _map_forma_to_medio(forma: str) -> str:
+    f = (forma or "").strip().lower()
+    if "efectivo" in f:
+        return "Efectivo"
+    if "depós" in f or "deposit" in f:
+        return "Depósito"
+    if "transf" in f:
+        return "Transferencia"
+    if "cheq" in f:
+        return "Cheque"
+    return "Otro"
+
+
+# ============================
+# Controller principal
+# ============================
 
 async def parse_constitucion(file: UploadFile) -> ConstitucionResponse:
     """
@@ -94,45 +131,63 @@ async def parse_constitucion(file: UploadFile) -> ConstitucionResponse:
     raw = await extract_constitucion_text(contenido=texto, fecha_minuta_hint=None)
     cleaned = normalize_payload(raw)
 
-    # --- Blindajes mínimos ---
-
-    # CIIU: garantizar exactamente 1 categoría si el modelo devolvió 0 o más de 1.
-    # (El prompt ya obliga a 1, esto es sólo cinturón de seguridad)
+    # --- CIIU: garantizar exactamente 1 categoría ---
     if "beneficiario" in cleaned:
         ciiu = (cleaned["beneficiario"] or {}).get("ciiu") or []
         if not isinstance(ciiu, list):
             ciiu = [str(ciiu)]
-        if len(ciiu) == 0:
-            # fallback neutro (elige una por defecto si el modelo no devolvió nada)
-            ciiu = ["ACTIVIDADES INMOBILIARIAS, EMPRESARIALES Y DE ALQUILER"]
-        else:
-            ciiu = [str(ciiu[0])]
-        cleaned["beneficiario"]["ciiu"] = ciiu
+        cleaned["beneficiario"]["ciiu"] = [str(ciiu[0])] if ciiu else ["ACTIVIDADES INMOBILIARIAS, EMPRESARIALES Y DE ALQUILER"]
 
-    # Bien: si está vacío o faltan campos, aplicar defaults requeridos
+    # --- BIEN: defaults requeridos si falta info ---
     b = cleaned.get("bien") or []
-    if not b:
-        b = [{
+    if b:
+        b0 = dict(b[0])
+        cleaned["bien"] = [{
+            "tipo": b0.get("tipo") or "BIENES",
+            "clase": b0.get("clase") or "OTROS NO ESPECIFICADOS",
+            "otrosBienesNoEspecificados": b0.get("otrosBienesNoEspecificados") or "CAPITAL"
+        }]
+    else:
+        cleaned["bien"] = [{
             "tipo": "BIENES",
             "clase": "OTROS NO ESPECIFICADOS",
             "otrosBienesNoEspecificados": "CAPITAL"
         }]
-    else:
-        # Completar faltantes en el primer bien
-        b0 = dict(b[0])
-        b0["tipo"] = b0.get("tipo") or "BIENES"
-        b0["clase"] = b0.get("clase") or "OTROS NO ESPECIFICADOS"
-        b0["otrosBienesNoEspecificados"] = b0.get("otrosBienesNoEspecificados") or "CAPITAL"
-        b = [b0]
-    cleaned["bien"] = b
 
-    # --- total de transferencias (server-side) ---
-    total = 0.0
-    for t in cleaned.get("transferencia", []) or []:
-        try:
-            total += float(t.get("monto", 0) or 0)
-        except Exception:
-            pass
-    cleaned["transferenciaTotal"] = round(total, 2)
+    # --- medioPago + transferencia única (una sola pasada) ---
+    raw_medio: List[dict] = cleaned.get("medioPago") or []
+    raw_trans: List[dict] = cleaned.get("transferencia") or []
+
+    if not raw_medio and raw_trans:
+        # migrar de transferencia → medioPago
+        raw_medio = [{
+            "medio": _map_forma_to_medio(t.get("formaPago", "")),
+            "moneda": _norm_moneda(t.get("moneda") or "SOLES"),
+            "valorBien": float(t.get("monto") or 0.0),
+        } for t in raw_trans]
+
+    # normalizar medioPago (moneda y valor)
+    medio_pago = [{
+        "medio": (m.get("medio") or "Otro"),
+        "moneda": _norm_moneda(m.get("moneda") or "SOLES"),
+        "valorBien": float(m.get("valorBien") or 0.0),
+    } for m in raw_medio]
+
+    total = round(sum(m["valorBien"] for m in medio_pago), 2)
+    moneda_base = medio_pago[0]["moneda"] if medio_pago else "SOLES"
+
+    cleaned["medioPago"] = medio_pago
+    cleaned["transferencia"] = [{
+        "moneda": moneda_base,
+        "monto": total,
+        "formaPago": "Contado",
+        "oportunidadPago": "A LA FIRMA DEL INSTRUMENTO PÚBLICO PROTOCOLAR"
+    }]
+
+    # CapitalSocial (si existe): normaliza moneda una sola vez
+    if isinstance(cleaned.get("capitalSocial"), dict):
+        cs = dict(cleaned["capitalSocial"])
+        cs["moneda"] = _norm_moneda(cs.get("moneda") or "SOLES")
+        cleaned["capitalSocial"] = cs
 
     return ConstitucionResponse(**cleaned)

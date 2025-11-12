@@ -112,6 +112,8 @@ CIIU_CATALOGO = [
 
 def build_constitucion_prompt(contenido: str, fecha_minuta_hint: Optional[str] = None) -> str:
     hint = f"\nHint_fechaMinuta: {fecha_minuta_hint}\n" if fecha_minuta_hint else ""
+    # Asegúrate de tener CIIU_CATALOGO definido en este módulo:
+    # CIIU_CATALOGO = [ "AGRICULTURA GANADERIA CAZA Y SILVICULTURA", "PESCA", ... ]
     catalogo_fmt = "\n".join(f"- {c}" for c in CIIU_CATALOGO)
 
     schema = f"""
@@ -150,11 +152,20 @@ Devuelve SOLO un JSON válido EXACTAMENTE con este esquema:
   }},
 
   "transferencia": [
-    {{ "moneda": "PEN|USD|EUR", "monto": 0.0, "formaPago": "Depósito|Transferencia|Efectivo|Crédito|Otro", "oportunidadPago": "string" }}
+    {{
+      "moneda": "SOLES|DOLARES AMERICANOS|EUROS",
+      "monto": 0.0,
+      "formaPago": "Contado",
+      "oportunidadPago": "A LA FIRMA DEL INSTRUMENTO PÚBLICO PROTOCOLAR"
+    }}
   ],
 
   "medioPago": [
-    {{ "medio": "Transferencia|Cheque|Depósito|Efectivo|Otro", "moneda": "PEN|USD|EUR", "valorBien": 0.0 }}
+    {{
+      "medio": "Transferencia|Cheque|Depósito|Efectivo|Otro",
+      "moneda": "SOLES|DOLARES AMERICANOS|EUROS",
+      "valorBien": 0.0
+    }}
   ],
 
   "bien": [
@@ -169,14 +180,6 @@ Reglas:
 - Domicilio/Ubigeo: si el texto refiere Lima explícitamente sin provincia/departamento, usa "Lima" en ambos.
 - fechaMinuta: si no puede inferirse, usa "" (cadena vacía).
 
-# En el esquema JSON (sección raíz), añade:
-# "transferenciaTotal": 0.0
-
-Reglas extra:
-- "transferenciaTotal": suma numérica de todos los "monto" en el array "transferencia".
-- Si el array está vacío, "transferenciaTotal" = 0.0.
-- No añadas texto ni moneda; solo número.
-
 - Género (OBLIGATORIO y BINARIO):
   * NO lo copies literalmente del documento.
   * Debes INFERIR el género evaluando nombres, pronombres y tratamientos (Sr., Sra., Don, Doña) y el contexto.
@@ -190,8 +193,28 @@ Reglas extra:
   * Devuelve en "beneficiario.ciiu" un ARRAY con **solo 1** string: la categoría del catálogo más cercana a lo descrito en el documento.
   * Si aparecen varias actividades, escoge la que corresponda a la primera detectada por orden de aparición en el texto.
 
+- Moneda:
+  * Normaliza a "SOLES", "DOLARES AMERICANOS" o "EUROS".
+  * Ejemplos de normalización:
+    - "PEN", "SOL", "SOLES", "S/", "S/." → "SOLES"
+    - "USD", "US$", "USD$", "$", "dólares" → "DOLARES AMERICANOS"
+    - "EUR", "€", "euros" → "EUROS"
+
+- Transferencia (forma final OBLIGATORIA):
+  * Debe contener **EXACTAMENTE 1** objeto.
+  * "moneda": usa la moneda predominante/primera ligada al pago del capital; normaliza como se indicó.
+  * "monto": **suma** de todos los "valorBien" en el array "medioPago".
+  * "formaPago": **"Contado"**.
+  * "oportunidadPago": **"A LA FIRMA DEL INSTRUMENTO PÚBLICO PROTOCOLAR"**.
+
+- Medio de pago (detalle):
+  * Lista cada concepto con "medio" (Efectivo/Depósito/Transferencia/Cheque/Otro), "moneda", "valorBien".
+  * Si el documento describe varias líneas (p. ej., 4× S/1250), deben ir como **múltiples items** en "medioPago".
+  * Si no hay valores claros, deja "medioPago": [] y ajusta "transferencia" con monto 0.0.
+
 - Bien (defaults si no hay evidencia):
-  * Si no encuentras detalles de bienes, usa por defecto: "bien": [{{ "tipo": "BIENES", "clase": "OTROS NO ESPECIFICADOS", "otrosBienesNoEspecificados": "CAPITAL" }}].
+  * Si no encuentras detalles de bienes, usa por defecto:
+    "bien": [{{ "tipo": "BIENES", "clase": "OTROS NO ESPECIFICADOS", "otrosBienesNoEspecificados": "CAPITAL" }}].
 """
 
     return f"""{schema}
