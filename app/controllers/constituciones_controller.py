@@ -184,10 +184,37 @@ async def parse_constitucion(file: UploadFile) -> ConstitucionResponse:
         "oportunidadPago": "A LA FIRMA DEL INSTRUMENTO PÚBLICO PROTOCOLAR"
     }]
 
-    # CapitalSocial (si existe): normaliza moneda una sola vez
+    # --- CapitalSocial (si existe): normaliza moneda una sola vez ---
     if isinstance(cleaned.get("capitalSocial"), dict):
         cs = dict(cleaned["capitalSocial"])
         cs["moneda"] = _norm_moneda(cs.get("moneda") or "SOLES")
         cleaned["capitalSocial"] = cs
+
+    # === NUEVO: Beneficiario.direccion (override) y ubigeo (relleno) desde el primer otorgante ===
+    try:
+        ben = cleaned.get("beneficiario") or {}
+        ogts = cleaned.get("otorgantes") or []
+        if ogts:
+            first = ogts[0] or {}
+            dom = (first.get("domicilio") or {})
+            dir_ot = (dom.get("direccion") or "").strip()
+            ubi_ot = (dom.get("ubigeo") or {}) or {}
+
+            # Dirección: SIEMPRE usar la del primer otorgante si existe (override)
+            if dir_ot:
+                ben["direccion"] = dir_ot
+
+            # Ubigeo: completar solo campos vacíos con valores del primer otorgante
+            ben_ubi = (ben.get("ubigeo") or {}) or {}
+            for k in ("departamento", "provincia", "distrito"):
+                val_ot = (ubi_ot.get(k) or "").strip()
+                if val_ot and (ben_ubi.get(k) or "").strip() == "":
+                    ben_ubi[k] = val_ot
+
+            ben["ubigeo"] = ben_ubi
+            cleaned["beneficiario"] = ben
+    except Exception:
+        # No bloquear flujo si la estructura viene incompleta
+        pass
 
     return ConstitucionResponse(**cleaned)
