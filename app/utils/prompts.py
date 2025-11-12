@@ -169,6 +169,14 @@ Reglas:
 - Domicilio/Ubigeo: si el texto refiere Lima explícitamente sin provincia/departamento, usa "Lima" en ambos.
 - fechaMinuta: si no puede inferirse, usa "" (cadena vacía).
 
+# En el esquema JSON (sección raíz), añade:
+# "transferenciaTotal": 0.0
+
+Reglas extra:
+- "transferenciaTotal": suma numérica de todos los "monto" en el array "transferencia".
+- Si el array está vacío, "transferenciaTotal" = 0.0.
+- No añadas texto ni moneda; solo número.
+
 - Género (OBLIGATORIO y BINARIO):
   * NO lo copies literalmente del documento.
   * Debes INFERIR el género evaluando nombres, pronombres y tratamientos (Sr., Sra., Don, Doña) y el contexto.

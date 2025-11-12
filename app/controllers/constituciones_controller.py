@@ -83,6 +83,9 @@ class ConstitucionResponse(BaseModel):
     medioPago: List[MedioPagoItem] = []
     bien: List[Bien] = []
 
+    # 🔹 nuevo campo:
+    transferenciaTotal: float = 0.0
+
 async def parse_constitucion(file: UploadFile) -> ConstitucionResponse:
     """
     Recibe PDF o Word (DOC/DOCX) y retorna el JSON estructurado.
@@ -122,5 +125,14 @@ async def parse_constitucion(file: UploadFile) -> ConstitucionResponse:
         b0["otrosBienesNoEspecificados"] = b0.get("otrosBienesNoEspecificados") or "CAPITAL"
         b = [b0]
     cleaned["bien"] = b
+
+    # --- total de transferencias (server-side) ---
+    total = 0.0
+    for t in cleaned.get("transferencia", []) or []:
+        try:
+            total += float(t.get("monto", 0) or 0)
+        except Exception:
+            pass
+    cleaned["transferenciaTotal"] = round(total, 2)
 
     return ConstitucionResponse(**cleaned)
