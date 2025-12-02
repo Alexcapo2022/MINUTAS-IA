@@ -111,6 +111,7 @@ CIIU_CATALOGO = [
 ]
 
 def build_constitucion_prompt(contenido: str, fecha_minuta_hint: Optional[str] = None) -> str:
+  
     hint = f"\nHint_fechaMinuta: {fecha_minuta_hint}\n" if fecha_minuta_hint else ""
     # Asegúrate de tener CIIU_CATALOGO definido en este módulo:
     # CIIU_CATALOGO = [ "AGRICULTURA GANADERIA CAZA Y SILVICULTURA", "PESCA", ... ]
@@ -221,3 +222,132 @@ Reglas:
 --- CONTENIDO EXTRAÍDO (texto plano) ---
 {contenido}
 {hint}"""
+
+def build_compraventa_prompt(contenido: str, fecha_minuta_hint: Optional[str] = None) -> str:
+    fecha_txt = (
+        f"Fecha de minuta: usar formato YYYY-MM-DD. Hint: {fecha_minuta_hint}."
+        if fecha_minuta_hint
+        else "Fecha de minuta: usar formato YYYY-MM-DD si se puede inferir; en caso contrario, deja \"\"."
+    )
+
+    schema = """
+Devuelve SOLO un JSON válido EXACTAMENTE con este esquema:
+
+{
+  "tipoDocumento": "Compra Venta",
+  "fechaMinuta": "YYYY-MM-DD",
+
+  "otorgantes": [
+    {
+      "nombres": "string",
+      "apellidoPaterno": "string",
+      "apellidoMaterno": "string",
+      "nacionalidad": "string",
+      "documento": { "tipo": "DNI|CE|PAS", "numero": "string" },
+      "profesionOcupacion": "string",
+      "estadoCivil": "string",
+      "domicilio": {
+        "direccion": "string",
+        "ubigeo": { "departamento": "string", "provincia": "string", "distrito": "string" }
+      },
+      "genero": "MASCULINO|FEMENINO",
+      "porcentajeParticipacion": 0.0,
+      "numeroAccionesParticipaciones": 0
+    }
+  ],
+
+  "beneficiarios": [
+    {
+      "nombres": "string",
+      "apellidoPaterno": "string",
+      "apellidoMaterno": "string",
+      "nacionalidad": "string",
+      "documento": { "tipo": "DNI|CE|PAS", "numero": "string" },
+      "profesionOcupacion": "string",
+      "estadoCivil": "string",
+      "domicilio": {
+        "direccion": "string",
+        "ubigeo": { "departamento": "string", "provincia": "string", "distrito": "string" }
+      },
+      "genero": "MASCULINO|FEMENINO",
+      "porcentajeParticipacion": 0.0,
+      "numeroAccionesParticipaciones": 0
+    }
+  ],
+
+  "transferencia": [
+    {
+      "moneda": "SOLES|DOLARES AMERICANOS|EUROS",
+      "monto": 0.0,
+      "formaPago": "Contado|Crédito|Otro",
+      "oportunidadPago": "A LA FIRMA DEL INSTRUMENTO PÚBLICO PROTOCOLAR"
+    }
+  ],
+
+  "medioPago": [
+    {
+      "medio": "Transferencia|Cheque|Depósito|Efectivo|Otro",
+      "moneda": "SOLES|DOLARES AMERICANOS|EUROS",
+      "valorBien": 0.0,
+      "banco": "string",
+      "cuentaBancaria": "string",
+      "fechaDocumentoPago": "YYYY-MM-DD|string",
+      "numeroDocumentoPago": "string"
+    }
+  ],
+
+  "bien": [
+    {
+      "tipo": "Mueble|Inmueble|Dinero|Otro|BIENES",
+      "clase": "string",
+      "partidaRegistral": "string",
+      "ubigeo": { "departamento": "string", "provincia": "string", "distrito": "string" },
+      "zonaRegistral": "string",
+      "fechaMinuta": "YYYY-MM-DD|string|null"
+    }
+  ]
+}
+"""
+
+    return f"""{schema}
+
+Reglas:
+- NO escribas explicaciones, ni markdown. SOLO JSON.
+- Si un dato no aparece en la minuta:
+  - Usa "" para strings, 0/0.0 para números, [] para listas.
+- Documento:
+  - Para DNI/CE intenta dejar solo dígitos.
+- Ubigeo:
+  - Si solo se menciona “Lima” sin provincia/departamento, usa "Lima" en los tres campos.
+- {fecha_txt}
+
+- Género (OBLIGATORIO y BINARIO):
+  * NO lo copies literalmente del texto.
+  * Debes INFERIR el género por el nombre, pronombres o tratamientos (Sr., Sra., Don, Doña).
+  * Valores permitidos: "MASCULINO" o "FEMENINO".
+  * Si es ambiguo, elige el más probable por uso en español peruano.
+
+- Moneda:
+  * Normaliza a "SOLES", "DOLARES AMERICANOS" o "EUROS".
+  * "PEN","SOL","SOLES","S/","S/." → "SOLES".
+  * "USD","US$","USD$","$","dólares" → "DOLARES AMERICANOS".
+  * "EUR","€","euros" → "EUROS".
+
+- Transferencia:
+  * Debe haber exactamente 1 objeto en el array.
+  * "moneda" será la moneda predominante del pago.
+  * "monto" será la SUMA de todos los "valorBien" de medioPago.
+  * "formaPago": si el texto dice “al contado”, usar "Contado"; si habla de pago en cuotas, usar "Crédito"; si no es claro, "Otro".
+  * "oportunidadPago": por defecto "A LA FIRMA DEL INSTRUMENTO PÚBLICO PROTOCOLAR".
+
+- Bien:
+  * Si no hay detalle de bien, usar por defecto:
+    "tipo": "BIENES",
+    "clase": "PREDIOS",
+    "partidaRegistral": "",
+    "ubigeo": con campos vacíos,
+    "zonaRegistral": "",
+    "fechaMinuta": la misma fechaMinuta del documento (si existe).
+
+Texto de entrada (minuta de COMPRA-VENTA):
+\"\"\"{contenido}\"\"\""""
