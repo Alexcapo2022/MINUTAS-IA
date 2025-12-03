@@ -351,3 +351,199 @@ Reglas:
 
 Texto de entrada (minuta de COMPRA-VENTA):
 \"\"\"{contenido}\"\"\""""
+
+def build_donacion_prompt(contenido: str, fecha_minuta_hint: Optional[str] = None) -> str:
+    fecha_txt = (
+        f"Fecha de minuta: usar formato YYYY-MM-DD. Hint: {fecha_minuta_hint}."
+        if fecha_minuta_hint
+        else 'Fecha de minuta: usar formato YYYY-MM-DD si se puede inferir; si no, deja "".'
+    )
+
+    catalogo_fmt = "\n".join(f"- {c}" for c in CIIU_CATALOGO)
+
+    schema = f"""
+Devuelve SOLO un JSON válido EXACTAMENTE con este esquema:
+
+{{
+  "tipoDocumento": "Donación",
+  "fechaMinuta": "YYYY-MM-DD",
+
+  "otorgantePN": [
+    {{
+      "nombres": "",
+      "apellidoPaterno": "",
+      "apellidoMaterno": "",
+      "nacionalidad": "",
+      "documento": {{ "tipo": "DNI|CE|PAS", "numero": "" }},
+      "profesionOcupacion": "",
+      "estadoCivil": "",
+      "domicilio": {{
+        "direccion": "",
+        "ubigeo": {{ "departamento": "", "provincia": "", "distrito": "" }}
+      }},
+      "genero": "MASCULINO|FEMENINO",
+      "porcentajeParticipacion": 0.0,
+      "numeroAccionesParticipaciones": 0
+    }}
+  ],
+
+  "otorgantePJ": [
+    {{
+      "razonSocial": "",
+      "documento": {{ "tipo": "RUC|OTRO", "numero": "" }},
+      "partidaElectronica": "",
+      "oficinaRegistral": "",
+      "domicilio": {{
+        "direccion": "",
+        "ubigeo": {{ "departamento": "", "provincia": "", "distrito": "" }}
+      }},
+      "ciiu": [""],
+      "representante": {{
+        "nombres": "",
+        "apellidoPaterno": "",
+        "apellidoMaterno": "",
+        "nacionalidad": "",
+        "documento": {{ "tipo": "DNI|CE|PAS", "numero": "" }},
+        "profesionOcupacion": "",
+        "estadoCivil": "",
+        "domicilio": {{
+          "direccion": "",
+          "ubigeo": {{ "departamento": "", "provincia": "", "distrito": "" }}
+        }},
+        "genero": "MASCULINO|FEMENINO",
+        "zonaRegistral": "",
+        "partidaElectronica": "",
+        "tipoRepresentante": ""
+      }}
+    }}
+  ],
+
+  "beneficiarioPN": [
+    {{
+      "nombres": "",
+      "apellidoPaterno": "",
+      "apellidoMaterno": "",
+      "nacionalidad": "",
+      "documento": {{ "tipo": "DNI|CE|PAS", "numero": "" }},
+      "profesionOcupacion": "",
+      "estadoCivil": "",
+      "domicilio": {{
+        "direccion": "",
+        "ubigeo": {{ "departamento": "", "provincia": "", "distrito": "" }}
+      }},
+      "genero": "MASCULINO|FEMENINO",
+      "porcentajeParticipacion": 0.0,
+      "numeroAccionesParticipaciones": 0
+    }}
+  ],
+
+  "beneficiarioPJ": [
+    {{
+      "razonSocial": "",
+      "documento": {{ "tipo": "RUC|OTRO", "numero": "" }},
+      "partidaElectronica": "",
+      "oficinaRegistral": "",
+      "domicilio": {{
+        "direccion": "",
+        "ubigeo": {{ "departamento": "", "provincia": "", "distrito": "" }}
+      }},
+      "ciiu": [""],
+      "representante": {{
+        "nombres": "",
+        "apellidoPaterno": "",
+        "apellidoMaterno": "",
+        "nacionalidad": "",
+        "documento": {{ "tipo": "DNI|CE|PAS", "numero": "" }},
+        "profesionOcupacion": "",
+        "estadoCivil": "",
+        "domicilio": {{
+          "direccion": "",
+          "ubigeo": {{ "departamento": "", "provincia": "", "distrito": "" }}
+        }},
+        "genero": "MASCULINO|FEMENINO",
+        "zonaRegistral": "",
+        "partidaElectronica": "",
+        "tipoRepresentante": ""
+      }}
+    }}
+  ],
+
+  "transferencia": [
+    {{
+      "moneda": "SOLES|DOLARES AMERICANOS|EUROS",
+      "monto": 0.0,
+      "formaPago": "Donación|Anticipo",
+      "oportunidadPago": ""
+    }}
+  ],
+
+  "medioPago": [
+    {{
+      "medio": "Transferencia|Cheque|Depósito|Efectivo|Otro",
+      "moneda": "SOLES|DOLARES AMERICANOS|EUROS",
+      "valorBien": 0.0
+    }}
+  ],
+
+  "bien": [
+    {{
+      "tipo": "Mueble|Inmueble|Dinero|Otro|BIENES",
+      "clase": "",
+      "ubigeo": {{ "departamento": "", "provincia": "", "distrito": "" }},
+      "partidaElectronica": "",
+      "zonaRegistral": "",
+      "opcionBienMueble": "",
+      "placaSerieMotor": "",
+      "otrosNoEspecificado": ""
+    }}
+  ]
+}}
+
+"""
+
+    return f"""{schema}
+
+Reglas:
+- NO escribas explicaciones ni markdown. SOLO JSON.
+- **NUNCA** uses la palabra "string" como valor. Es un placeholder de ejemplo.
+  - Si no se menciona un dato: usa "" para strings, 0 o 0.0 para números, [] para listas.
+- Documento:
+  - Para DNI/CE intenta dejar solo dígitos; para RUC igual.
+- Ubigeo:
+  - Si solo se menciona Lima sin provincia/departamento, usa "Lima" en los tres campos.
+- {fecha_txt}
+
+- Nacionalidad:
+  * Si el campo "nacionalidad" está vacío,
+    y el documento es DNI,
+    y el ubigeo tiene un "departamento" no vacío,
+    asume "PERUANA" como nacionalidad.
+
+- Género (OBLIGATORIO y BINARIO):
+  * NO copies literalmente el texto (no pongas "DE SEXO FEMENINO" etc).
+  * Debes INFERIR género por nombre, pronombres o tratamientos (Sr., Sra., Don, Doña).
+  * Valores permitidos: "MASCULINO" o "FEMENINO".
+  * Si es ambiguo, elige el más probable según uso en español peruano.
+
+- Moneda:
+  * "PEN","SOL","SOLES","S/","S/." → "SOLES".
+  * "USD","US$","USD$","$","dólares" → "DOLARES AMERICANOS".
+  * "EUR","€","euros" → "EUROS".
+
+- CIIU (EXACTAMENTE 1 categoría por persona jurídica):
+  * Para cada persona jurídica (otorgantePJ y beneficiarioPJ), identifica la actividad económica principal.
+  * Compara semánticamente contra este CATÁLOGO OFICIAL y elige la categoría MÁS CERCANA:
+{catalogo_fmt}
+  * En el JSON final, en el campo "ciiu" de cada persona jurídica, devuelve **un array con exactamente 1 string**: la categoría elegida del catálogo.
+  * Si NO puedes inferir la actividad → devuelve [""].
+
+- Transferencia:
+  * Debe haber EXACTAMENTE 1 objeto.
+  * "monto" = suma de todos los "valorBien" de "medioPago".
+  * "formaPago": "Donación" si el texto habla de donación pura; "Anticipo" si indica anticipo de legítima.
+  * "oportunidadPago": deja vacío si no se menciona nada específico.
+
+Texto de entrada (minuta de DONACIÓN):
+\"\"\"{contenido}\"\"\""""
+
+

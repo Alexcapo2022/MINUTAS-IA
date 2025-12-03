@@ -4,6 +4,7 @@ from app.utils.prompts import (
     build_poder_prompt,
     build_constitucion_prompt,
     build_compraventa_prompt,  # 👈 nuevo
+    build_donacion_prompt,  # 👈 nuevo
 )
 import json
 
@@ -164,4 +165,28 @@ async def extract_compraventa_image(
     except Exception as e:
         raise ValueError(
             f"El modelo no devolvió JSON válido (compra-venta/imagen). Respuesta: {text[:400]} ..."
+        ) from e
+
+async def extract_donacion_text(
+    contenido: str,
+    fecha_minuta_hint: str | None = None
+) -> dict:
+    prompt = build_donacion_prompt(contenido, fecha_minuta_hint)
+    resp = client.chat.completions.create(
+        model=settings.openai_model,
+        temperature=0,
+        messages=[
+            {
+                "role": "system",
+                "content": "Eres un estricto parser de minutas notariales de donación. Devuelve solo JSON válido.",
+            },
+            {"role": "user", "content": prompt},
+        ],
+    )
+    text = resp.choices[0].message.content.strip()
+    try:
+        return json.loads(text)
+    except Exception as e:
+        raise ValueError(
+            f"El modelo no devolvió JSON válido (donación). Respuesta: {text[:400]} ..."
         ) from e
