@@ -2,7 +2,8 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
-from app.routes.poderes_routes import router as poderes_router
+
+from app.api.v1.router import router as v1_router
 
 app = FastAPI(
     title="API Minutas",
@@ -18,7 +19,6 @@ def root():
 def health():
     return {"status": "ok"}
 
-# errores de validación más claros (400 en vez de 422)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     return JSONResponse(
@@ -26,4 +26,5 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         content={"detail": "Solicitud inválida. Revisa los campos enviados.", "errors": exc.errors()},
     )
 
-app.include_router(poderes_router)
+# routers versionados
+app.include_router(v1_router)
