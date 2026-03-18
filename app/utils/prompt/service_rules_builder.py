@@ -121,10 +121,10 @@ def _build_bienes_rule(in_bienes: int, in_aporte_bienes: int) -> str:
     lines = [
         "- BIENES FÍSICOS O INTANGIBLES:",
         f"  - Estado: {estado}.",
-        "  - En la raíz 'bienes': Crea 1 objeto distinto POR CADA ítem individual detallado en el texto. ¡No omitas ninguno, extrae todos!",
+        "  - En la raíz 'bienes': ¡PROHIBIDO RESUMIR, AGRUPAR O PONER TOTALES! DEBES crear un objeto independiente {...} en la lista POR CADA ítem real detallado en el inventario. Si el texto detalla 15 estantes, teles y sillas, tú DEBES devolver 15 objetos en la lista.",
         "  - El campo 'tipo_bien' DEBE ser estrictamente 'BIENES' o 'ACCIONES Y DERECHOS' (usa siempre 'BIENES' para muebles/equipos).",
         "  - El campo 'clase_bien' DEBE ser estrictamente uno de: AERONAVES, CONCESIONES, DERECHOS DE PROPIEAD INTELECTUAL, PREDIOS, MAQUINARIA Y EQUIPOS, MINAS CANTERAS Y DEPOSITOS DE HIDRO, NAVES, VEHICULOS TERRESTRRES, CREDITOS, OTROS NO ESPECIFICADOS, SIN OBJETOS, PERSONAS JURIDICAS.",
-        "  - El campo 'otros_bienes' DEBE contener toda la descripción minuciosa del bien (ej. '05 JUEGO DE MUEBLES PARA SALA DE ESPERA, MARCA: NACIONAL, MATERIAL: CUERO...').",
+        "  - El campo 'otros_bienes' DEBE contener toda la descripción minuciosa del bien (ej. '05 JUEGO DE MUEBLES PARA SALA DE ESPERA, MARCA: NACIONAL, MATERIAL: CUERO...'). Si en el texto dice 'APORTES EN BIENES NO DINERARIOS', IGNÓRALO Y BUSCA EL DETALLE REAL.",
     ]
 
     if in_aporte_bienes == 1:
