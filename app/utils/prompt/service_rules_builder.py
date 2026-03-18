@@ -123,6 +123,7 @@ def _build_bienes_rule(in_bienes: int, in_aporte_bienes: int) -> str:
         f"  - Estado: {estado}.",
         "  - En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados.",
         "  - ¡ALERTA CRÍTICA! A diferencia de 'medioPago' donde agrupaste por aportante, aquí en 'bienes' ESTÁ ESTRICTAMENTE PROHIBIDO AGRUPAR en 1 objeto por persona.",
+        "  - ¡PROHIBIDO EXTRAR RESÚMENES O TÍTULOS! No devuelvas 'APORTES EN BIENES NO DINERARIOS'. Tienes que bajar a la VERDADERA TABLA y extraer la descripción EXACTA de los 15 o más muebles.",
         "  - DEBES leer cada línea individual (ej: '05 JUEGOS DE MUEBLES', '13 ESTANTES', '01 COMPUTADORA INTEL', '01 TELEVISOR LG') y crear para CADA línea UN OBJETO {...} INDEPENDIENTE.",
         "  - Si en el texto hay 7 cosas de Fredy y 6 de Segundo, el arreglo final 'bienes' DEBE MEDIR 13 objetos de largo.",
         "  - El campo 'tipo_bien' DEBE ser estrictamente 'BIENES' o 'ACCIONES Y DERECHOS' (usa siempre 'BIENES' para muebles/equipos).",
