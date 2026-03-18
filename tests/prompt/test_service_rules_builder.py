@@ -160,7 +160,7 @@ class TestBuildServiceRulesText:
         
         assert "BIENES FÍSICOS O INTANGIBLES" in resultado
         assert "Estado: OBLIGATORIO." in resultado
-        assert "PROHIBIDO RESUMIR" in resultado
+        assert "UBICA EN EL TEXTO la tabla o lista" in resultado
         assert "APORTE DE CAPITAL CON BIENES (REGLA MATEMÁTICA OBLIGATORIA)" not in resultado
 
     def test_bienes_con_aporte_capital(self):
