@@ -121,10 +121,12 @@ def _build_bienes_rule(in_bienes: int, in_aporte_bienes: int) -> str:
     lines = [
         "- BIENES FÍSICOS O INTANGIBLES:",
         f"  - Estado: {estado}.",
-        "  - En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes (estantes, computadoras, televisores, etc.). Por CADA renglón o ítem que encuentres, CREA UN OBJETO {...} NUEVO dentro de la lista 'bienes'. ¡Extrae todo el inventario completo!",
+        "  - En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados (estantes, computadoras, sillas, escritorios, televisores, etc.).",
+        "  - ¡IMPORTANTE! Aunque la estructura de 'bienes' tenga campos como 'partida_registral' o 'numero_psm', TODOS los muebles de oficina y equipos informáticos DEBEN registrarse ahí. (Deja los campos formales vacíos, pero CREA el objeto).",
+        "  - Por CADA renglón o ítem que encuentres (ej. '05 JUEGOS DE MUEBLES...', '13 ESTANTES...'), CREA UN OBJETO {...} NUEVO y agrégalo a la lista 'bienes'. Si hay 15 ítems aportados, la lista 'bienes' OBLIGATORIAMENTE tendrá 15 objetos.",
         "  - El campo 'tipo_bien' DEBE ser estrictamente 'BIENES' o 'ACCIONES Y DERECHOS' (usa siempre 'BIENES' para muebles/equipos).",
-        "  - El campo 'clase_bien' DEBE ser estrictamente uno de: AERONAVES, CONCESIONES, DERECHOS DE PROPIEAD INTELECTUAL, PREDIOS, MAQUINARIA Y EQUIPOS, MINAS CANTERAS Y DEPOSITOS DE HIDRO, NAVES, VEHICULOS TERRESTRRES, CREDITOS, OTROS NO ESPECIFICADOS, SIN OBJETOS, PERSONAS JURIDICAS.",
-        "  - El campo 'otros_bienes' DEBE tener todo el detalle del renglón (ej. '05 JUEGO DE MUEBLES, MARCA: NACIONAL, MATERIAL: CUERO').",
+        "  - El campo 'clase_bien' usa: 'MAQUINARIA Y EQUIPOS' (para computadoras, teles, etc.) o 'OTROS NO ESPECIFICADOS' (estantes, sillas, etc.).",
+        "  - El campo 'otros_bienes' DEBE tener todo el detalle minucioso del renglón (ej. '05 JUEGO DE MUEBLES, MARCA: NACIONAL, MATERIAL: CUERO...'). Si lees un resumen como 'APORTES EN BIENES', IGNÓRALO Y BUSCA EL DETALLE REAL.",
     ]
 
     if in_aporte_bienes == 1:
