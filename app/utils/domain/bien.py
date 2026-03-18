@@ -18,6 +18,8 @@ def _map_tipo_bien(raw: str) -> str:
         return "DINERO EFECTIVO"
     if any(x in r for x in ["ACCION", "BONO", "VALOR", "TITULO VALOR", "PARTICIPACION", "CERTIFICADO"]):
         return "VALORES"
+    if "BIENES" in r:
+        return "BIENES"
     return "" if not r else "OTROS"
 
 def _map_clase_bien(raw_tipo: str, raw_clase: str, texto_ctx: str) -> str:
@@ -74,7 +76,7 @@ def normalize_bien(b: dict, zona_repo: Optional[Any] = None, texto_contexto: str
     opcion_bien_mueble = get_str(b, "opcion_bien_mueble", "opcionBienMueble", default="")
     numero_psm = get_str(b, "numero_psm", "placaSerieMotor", default="")
 
-    otros_bienes = ""
+    otros_bienes = get_str(b, "otros_bienes", "otrosBienes", default="")
     ubigeo_in = b.get("ubigeo", {}) if isinstance(b.get("ubigeo"), dict) else {}
     ubigeo = normalize_ubigeo(ubigeo_in)
 
@@ -84,6 +86,7 @@ def normalize_bien(b: dict, zona_repo: Optional[Any] = None, texto_contexto: str
         bool(clase_bien_raw),
         bool(partida_registral),
         bool(zona_registral),
+        bool(otros_bienes),
         bool(ubigeo.get("departamento") or ubigeo.get("provincia") or ubigeo.get("distrito")),
     ])
 
