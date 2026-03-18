@@ -24,6 +24,27 @@ def _safe_str(obj, attr: str) -> str:
     return (val or "").strip()
 
 
+# ── Catálogos estandarizados ───────────────────────────────────────────────────
+
+_MEDIOS_PAGO_PERMITIDOS = [
+    "DEPOSITO EN CUENTA",
+    "GIRO",
+    "TRANSFERENCIA DE FONDOS",
+    "ORDEN DE PAGO",
+    "TARJETA DE DEBITO",
+    "TARJETA DE CREDITO EMITIDA EN EL PAIS",
+    "CHEQUE DE GERENCIA",
+    "EFECTIVO 008- MENORES A 5000",
+    "EFECTIVO 009- EN LOS DEMAS CASOS",
+    "MEDIOS DE PAGO USADOS EN COMERCIO EXTERIOR",
+    "DOCUMENTOS DE EDPYMES Y COOPERATIVAS DE AHORRO Y CREDITO",
+    "TARJETA DE CREDITO EMITIDA O NO EN EL PAIS POR ENT",
+    "TARJETAS DE CREDITO EMITIDAS EN EL EXTERIOR POR BA",
+    "BIEN MUEBLE",
+    "BIEN INMUEBLE",
+    "OTROS MEDIOS DE PAGO",
+]
+
 # ── Builders de sección ────────────────────────────────────────────────────────
 
 def _build_participante_rule(
@@ -77,6 +98,9 @@ def _build_medio_pago_rule(in_medio_pago: int) -> str:
     lines = [
         "- MEDIO DE PAGO:",
         f"  - Estado: {estado}.",
+        "  - MEDIO PAGO EXACTO: El campo 'medio_pago' dentro de valores.medioPago[] DEBE ser UNO de estos exactos (si no se especifica escoge OTROS MEDIOS DE PAGO):",
+        f"    {', '.join(_MEDIOS_PAGO_PERMITIDOS)}",
+        "  - REGLA MATEMÁTICA OBLIGATORIA: Si llenas 'valores.transferencia', la suma de todos los 'valor_bien' en 'valores.medioPago' DEBE dar exactamente el mismo 'monto' que la transferencia principal.",
     ]
 
     if in_medio_pago == 1:
