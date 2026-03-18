@@ -134,16 +134,15 @@ def _build_bienes_rule(in_bienes: int, in_aporte_bienes: int) -> str:
     ]
 
     if in_aporte_bienes == 1:
-        lines.extend([
-            "",
-            "  - APORTE DE CAPITAL CON BIENES (REGLA MATEMÁTICA OBLIGATORIA):",
-            "    Como este servicio usa bienes para aportar o pagar capital:",
-            "    1) En 'valores.transferencia': 1 solo objeto con el monto TOTAL SUMADO de todos los aportes.",
-            "    2) En 'valores.medioPago': Crea EXACTAMENTE 1 objeto por cada aportante que dio bienes.",
-            "       - 'medio_pago': 'BIEN MUEBLE' (o 'BIEN INMUEBLE')",
-            "       - 'valor_bien': El monto SUMADO de todos los bienes de ESE aportante.",
-            "    3) La suma de los 'monto_aportado' de otorgantes + suma de los 'valor_bien' en medioPago, DEBEN igualar al monto en 'transferencia'.",
-        ])
+        lines += [
+            "  - APORTE DE CAPITAL CON BIENES O DINERO (REGLAS OBLIGATORIAS):",
+            "    1) En 'valores.transferencia': 1 solo objeto con el monto TOTAL SUMADO de todos los aportes del contrato.",
+            "    2) En 'valores.medioPago': Evalúa de qué forma aportó cada persona:",
+            "       - Si aportó DINERO (Efectivo, Depósito, Transferencia): Usa el medio de pago financiero correspondiente (ej. 'DEPOSITO EN CUENTA', 'EFECTIVO 008...'). NUNCA uses 'BIEN MUEBLE' para dinero.",
+            "       - Si aportó BIENES FÍSICOS (muebles, vehículos, inmuebles): Usa 'BIEN MUEBLE' o 'BIEN INMUEBLE'.",
+            "       - 'valor_bien': El monto que aportó esa persona específica en esa forma de pago.",
+            "    3) La suma de los 'monto_aportado' de otorgantes + suma de los 'valor_bien' en medioPago, DEBEN igualar al monto en 'transferencia'."
+        ]
 
     return "\n".join(lines)
 
