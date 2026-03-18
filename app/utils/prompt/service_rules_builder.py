@@ -100,7 +100,6 @@ def _build_medio_pago_rule(in_medio_pago: int) -> str:
         f"  - Estado: {estado}.",
         "  - MEDIO PAGO EXACTO: El campo 'medio_pago' dentro de valores.medioPago[] DEBE ser UNO de estos exactos (si no se especifica escoge OTROS MEDIOS DE PAGO):",
         f"    {', '.join(_MEDIOS_PAGO_PERMITIDOS)}",
-        "  - REGLA MATEMÁTICA OBLIGATORIA: Si llenas 'valores.transferencia', la suma de todos los 'valor_bien' en 'valores.medioPago' DEBE dar exactamente el mismo 'monto' que la transferencia principal.",
     ]
 
     if in_medio_pago == 1:
@@ -109,6 +108,35 @@ def _build_medio_pago_rule(in_medio_pago: int) -> str:
             "transferencias, constancias de pago, voucher, efectivo, documento de pago "
             "o cualquier evidencia de forma de pago."
         )
+
+    return "\n".join(lines)
+
+
+def _build_bienes_rule(in_bienes: int, in_aporte_bienes: int) -> str:
+    """Genera las instrucciones para extraer bienes y manejar aportes en especie."""
+    if in_bienes <= 0:
+        return ""
+
+    estado = map_obligatoriedad_prompt(in_bienes)
+    lines = [
+        "- BIENES FÍSICOS O INTANGIBLES:",
+        f"  - Estado: {estado}.",
+        "  - En la raíz 'bienes': Crea 1 objeto distinto POR CADA ítem individual detallado en el texto. ¡No omitas ninguno, extrae todos!",
+        "  - El campo 'tipo_bien' DEBE ser estrictamente 'BIENES' o 'ACCIONES Y DERECHOS' (usa siempre 'BIENES' para muebles/equipos).",
+        "  - El campo 'clase_bien' DEBE ser estrictamente uno de: AERONAVES, CONCESIONES, DERECHOS DE PROPIEAD INTELECTUAL, PREDIOS, MAQUINARIA Y EQUIPOS, MINAS CANTERAS Y DEPOSITOS DE HIDRO, NAVES, VEHICULOS TERRESTRRES, CREDITOS, OTROS NO ESPECIFICADOS, SIN OBJETOS, PERSONAS JURIDICAS.",
+    ]
+
+    if in_aporte_bienes == 1:
+        lines.extend([
+            "",
+            "  - APORTE DE CAPITAL CON BIENES (REGLA MATEMÁTICA OBLIGATORIA):",
+            "    Como este servicio usa bienes para aportar o pagar capital:",
+            "    1) En 'valores.transferencia': 1 solo objeto con el monto TOTAL SUMADO de todos los aportes.",
+            "    2) En 'valores.medioPago': Crea EXACTAMENTE 1 objeto por cada aportante que dio bienes.",
+            "       - 'medio_pago': 'BIEN MUEBLE' (o 'BIEN INMUEBLE')",
+            "       - 'valor_bien': El monto SUMADO de todos los bienes de ESE aportante.",
+            "    3) La suma de los 'monto_aportado' de otorgantes + suma de los 'valor_bien' en medioPago, DEBEN igualar al monto en 'transferencia'.",
+        ])
 
     return "\n".join(lines)
 
@@ -172,6 +200,12 @@ def build_service_rules_text(servicio_obj) -> str:
         # Valores
         _build_medio_pago_rule(_safe_int(servicio_obj, "in_medio_pago")),
         _build_oportunidad_pago_rule(_safe_int(servicio_obj, "in_oportunidad_pago")),
+        
+        # Bienes
+        _build_bienes_rule(
+            in_bienes=_safe_int(servicio_obj, "in_bienes"),
+            in_aporte_bienes=_safe_int(servicio_obj, "in_aporte_bienes"),
+        ),
     ]
 
     sections = [s.strip() for s in sections if s and s.strip()]

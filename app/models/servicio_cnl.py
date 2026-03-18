@@ -37,6 +37,12 @@ class ServicioCnl(Base):
     in_medio_pago = Column(Integer, nullable=False, default=0)
     in_oportunidad_pago = Column(Integer, nullable=False, default=0)
 
+    # ── Parametrización de bienes ─────────────────────────────────────────────
+    # in_bienes: 0 = NO APLICA, 1 = OBLIGATORIO, 2 = OPCIONAL
+    in_bienes = Column(Integer, nullable=False, default=0)
+    # in_aporte_bienes: 0 = NORMAL, 1 = APORTE DE CAPITAL (Activa regla matemática vs medioPago)
+    in_aporte_bienes = Column(Integer, nullable=False, default=0)
+
     # ── Relaciones ────────────────────────────────────────────────────────────
     prompts_rel = relationship(
         "ServicioCnlPrompt",

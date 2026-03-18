@@ -34,6 +34,9 @@ class MockServicio:
         self.in_medio_pago      = kwargs.get("in_medio_pago", 0)
         self.in_oportunidad_pago = kwargs.get("in_oportunidad_pago", 0)
 
+        self.in_bienes = kwargs.get("in_bienes", 0)
+        self.in_aporte_bienes = kwargs.get("in_aporte_bienes", 0)
+
 
 # ── Tests: mappers ────────────────────────────────────────────────────────────
 
@@ -150,3 +153,21 @@ class TestBuildServiceRulesText:
         svc = MockServicio(min_otorgante=2, in_tipo_otorgante=1, min_beneficiario=0)
         result = build_service_rules_text(svc)
         assert "BENEFICIARIOS" not in result
+
+    def test_bienes_simples(self):
+        servicio = MockServicio(in_bienes=1)
+        resultado = build_service_rules_text(servicio)
+        
+        assert "BIENES FÍSICOS O INTANGIBLES" in resultado
+        assert "Estado: OBLIGATORIO." in resultado
+        assert "Crea 1 objeto distinto POR CADA ítem individual" in resultado
+        assert "APORTE DE CAPITAL CON BIENES (REGLA MATEMÁTICA OBLIGATORIA)" not in resultado
+
+    def test_bienes_con_aporte_capital(self):
+        servicio = MockServicio(in_bienes=2, in_aporte_bienes=1)
+        resultado = build_service_rules_text(servicio)
+
+        assert "Estado: OPCIONAL." in resultado
+        assert "APORTE DE CAPITAL CON BIENES (REGLA MATEMÁTICA OBLIGATORIA)" in resultado
+        assert "En 'valores.transferencia': 1 solo objeto con el monto TOTAL SUMADO" in resultado
+        assert "Crea EXACTAMENTE 1 objeto por cada aportante que dio bienes" in resultado
