@@ -1,0 +1,161 @@
+# app/utils/prompt/service_rules_builder.py
+"""
+Construye el bloque de REGLAS PARAMETRIZADAS DEL SERVICIO que se inyecta
+en el prompt del LLM como placeholder {{service_rules}}.
+
+Depende únicamente del objeto ServicioCnl (o cualquier objeto con los
+atributos de parametrización). Sin I/O, sin BD, testeable de forma pura.
+"""
+from __future__ import annotations
+
+from .prompt_mappers import map_tipo_persona_prompt, map_obligatoriedad_prompt
+
+
+# ── Helpers internos ────────────────────────────────────────────────────────────
+
+def _safe_int(obj, attr: str, default: int = 0) -> int:
+    """Lee un atributo como int; devuelve default si es None o ausente."""
+    return int(getattr(obj, attr, None) or default)
+
+
+def _safe_str(obj, attr: str) -> str:
+    """Lee un atributo como str limpio; devuelve '' si es None o ausente."""
+    val = getattr(obj, attr, None)
+    return (val or "").strip()
+
+
+# ── Builders de sección ────────────────────────────────────────────────────────
+
+def _build_participante_rule(
+    *,
+    min_value: int,
+    tipo_value: int,
+    label_custom: str,
+    label_default: str,
+    field_path: str,
+) -> str:
+    """
+    Genera el bloque de regla para un rol de participante (otorgante / beneficiario / otro).
+
+    Args:
+        min_value     : mínimo de participantes requeridos (0 = no aplica).
+        tipo_value    : tipo de persona (0-3).
+        label_custom  : nombre personalizado desde BD (p.ej. "VENDEDOR"). Puede ser "".
+        label_default : label genérico (p.ej. "OTORGANTES").
+        field_path    : ruta en el JSON de salida (p.ej. "participantes.otorgantes").
+    """
+    if min_value <= 0:
+        return ""
+
+    label = label_custom.upper() if label_custom else label_default
+
+    lines = [
+        f"- {label}:",
+        f"  - Debes intentar identificar como mínimo {min_value} participante(s) en {field_path}.",
+    ]
+
+    tipo_txt = map_tipo_persona_prompt(tipo_value)
+    if tipo_value > 0:
+        lines.append(f"  - Tipo de persona permitido: {tipo_txt}.")
+
+    if tipo_value in (2, 3):
+        lines.append(
+            "  - Si el tipo permitido incluye PERSONA JURIDICA, presta especial atención a: "
+            "RUC, razón social, siglas societarias (S.A., S.A.C., S.R.L., E.I.R.L., S.C.R.L., S.A.A.), "
+            'expresiones como "empresa", "sociedad", "asociación", "representada por", '
+            '"representante legal", "gerente general", "apoderado de la empresa", "por intermedio de".'
+        )
+
+    return "\n".join(lines)
+
+
+def _build_medio_pago_rule(in_medio_pago: int) -> str:
+    if in_medio_pago <= 0:
+        return ""
+
+    estado = map_obligatoriedad_prompt(in_medio_pago)
+    lines = [
+        "- MEDIO DE PAGO:",
+        f"  - Estado: {estado}.",
+    ]
+
+    if in_medio_pago == 1:
+        lines.append(
+            "  - Revisa con especial cuidado bancos, cuentas, cheques, depósitos, "
+            "transferencias, constancias de pago, voucher, efectivo, documento de pago "
+            "o cualquier evidencia de forma de pago."
+        )
+
+    return "\n".join(lines)
+
+
+def _build_oportunidad_pago_rule(in_oportunidad_pago: int) -> str:
+    if in_oportunidad_pago <= 0:
+        return ""
+
+    estado = map_obligatoriedad_prompt(in_oportunidad_pago)
+    lines = [
+        "- OPORTUNIDAD DE PAGO:",
+        f"  - Estado: {estado}.",
+    ]
+
+    if in_oportunidad_pago == 1:
+        lines.append(
+            '  - Revisa con especial cuidado expresiones como: "al contado", "contra firma", '
+            '"ya cancelado", "cancelado con anterioridad", "se pagará", "se cancela", '
+            '"pagado", "pendiente de pago", "a plazos".'
+        )
+
+    return "\n".join(lines)
+
+
+# ── Función pública principal ──────────────────────────────────────────────────
+
+def build_service_rules_text(servicio_obj) -> str:
+    """
+    Genera el bloque completo de reglas parametrizadas para inyectar en el prompt.
+
+    Returns:
+        str: Texto multilínea listo para usar como {{service_rules}}.
+             Retorna "" si el objeto es None o todas las columnas están en 0.
+    """
+    if servicio_obj is None:
+        return ""
+
+    # Participantes
+    sections = [
+        _build_participante_rule(
+            min_value=_safe_int(servicio_obj, "min_otorgante"),
+            tipo_value=_safe_int(servicio_obj, "in_tipo_otorgante"),
+            label_custom=_safe_str(servicio_obj, "no_otorgante"),
+            label_default="OTORGANTES",
+            field_path="participantes.otorgantes",
+        ),
+        _build_participante_rule(
+            min_value=_safe_int(servicio_obj, "min_beneficiario"),
+            tipo_value=_safe_int(servicio_obj, "in_tipo_beneficiario"),
+            label_custom=_safe_str(servicio_obj, "no_beneficiario"),
+            label_default="BENEFICIARIOS",
+            field_path="participantes.beneficiarios",
+        ),
+        _build_participante_rule(
+            min_value=_safe_int(servicio_obj, "min_otro"),
+            tipo_value=_safe_int(servicio_obj, "in_tipo_otro"),
+            label_custom=_safe_str(servicio_obj, "no_otro"),
+            label_default="OTROS / TERCEROS",
+            field_path="participantes.otorgantes",  # los "otros" suelen ir en otorgantes
+        ),
+        # Valores
+        _build_medio_pago_rule(_safe_int(servicio_obj, "in_medio_pago")),
+        _build_oportunidad_pago_rule(_safe_int(servicio_obj, "in_oportunidad_pago")),
+    ]
+
+    sections = [s.strip() for s in sections if s and s.strip()]
+
+    if not sections:
+        return ""
+
+    return (
+        "REGLAS PARAMETRIZADAS DEL SERVICIO (OBLIGATORIAS):\n"
+        + "\n\n".join(sections)
+    )

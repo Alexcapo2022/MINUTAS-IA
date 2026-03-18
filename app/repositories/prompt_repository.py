@@ -25,13 +25,14 @@ class PromptRepository:
             .limit(1)
         )
         return self.db.execute(stmt).scalars().first()
-    
-    def get_prompt_and_servicio_by_co_cnl(self, co_cnl: str):
+
+    def get_prompt_and_servicio_by_co_cnl(self, co_cnl: str) -> dict | None:
         """
-        Retorna (Prompt, de_servicio) para un co_cnl.
+        Retorna { prompt, de_servicio, servicio_obj } para un co_cnl.
+        - servicio_obj: objeto ServicioCnl completo (con columnas de parametrización).
         """
         stmt = (
-            select(Prompt, ServicioCnl.de_servicio)
+            select(Prompt, ServicioCnl)
             .join(ServicioCnlPrompt, ServicioCnlPrompt.co_prompt == Prompt.co_prompt)
             .join(ServicioCnl, ServicioCnl.co_servicio_cnl == ServicioCnlPrompt.co_servicio_cnl)
             .where(ServicioCnl.co_cnl == co_cnl)
@@ -44,9 +45,15 @@ class PromptRepository:
         if not row:
             return None
 
-        prompt_obj, de_servicio = row
-        return {"prompt": prompt_obj, "de_servicio": de_servicio or ""}
-    
+        prompt_obj, servicio_obj = row
+        de_servicio = (getattr(servicio_obj, "de_servicio", None) or "").strip()
+
+        return {
+            "prompt": prompt_obj,
+            "de_servicio": de_servicio,
+            "servicio_obj": servicio_obj,   # ← objeto completo con cols de parametrización
+        }
+
     def get_servicio_by_co_cnl(self, co_cnl: str) -> str:
         """
         Retorna ServicioCnl.de_servicio por co_cnl (solo activos en la relación).

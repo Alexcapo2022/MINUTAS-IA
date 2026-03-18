@@ -1,5 +1,4 @@
 # app/services/minuta_service.py
-import json
 import time
 import uuid
 from fastapi import UploadFile, HTTPException
@@ -20,6 +19,7 @@ from app.services.openai_service import OpenAIService
 from app.utils.ingestion import get_text_from_upload
 from app.utils.parsing.payload import normalize_payload
 from app.utils.template import render_template
+from app.utils.prompt import build_service_rules_text
 
 from app.schemas.payload_schemas import CanonicalPayload
 
@@ -64,6 +64,7 @@ class MinutaService:
 
         prompt_obj = row.get("prompt") if isinstance(row, dict) else None
         nombre_servicio = (row.get("de_servicio") or "").strip() if isinstance(row, dict) else ""
+        servicio_obj = row.get("servicio_obj") if isinstance(row, dict) else None  # ← Step 2.5
 
         template = (getattr(prompt_obj, "de_promp", "") or "").strip()
 
@@ -72,6 +73,18 @@ class MinutaService:
                 status_code=404,
                 detail=f"Prompt vacío/no encontrado para co_cnl={co_cnl}",
             )
+
+        # 2.5) Reglas de negocio parametrizadas del servicio (sin I/O de BD)
+        t0 = time.perf_counter()
+        service_rules = build_service_rules_text(servicio_obj)
+        t2b = time.perf_counter()
+        print(
+            f"[MINUTA] t2.5(service_rules)={_ms(t2b-t0)}ms "
+            f"| len={len(service_rules)} "
+            f"| active={'{{service_rules}}' in template}"
+        )
+        if service_rules:
+            print(f"[MINUTA] service_rules:\n{service_rules}")
 
         # 3) Catálogo CIIU (solo si el prompt lo necesita)
         t0 = time.perf_counter()
@@ -90,7 +103,7 @@ class MinutaService:
         t4 = time.perf_counter()
         print(f"[MINUTA] t4(base_payload)={_ms(t4-t0)}ms")
 
-        # 5) Render template con placeholders
+        # 5) Render template con placeholders (incluye {{service_rules}})
         t0 = time.perf_counter()
         final_prompt = render_template(
             template,
@@ -99,6 +112,7 @@ class MinutaService:
                 "contenido": contenido,
                 "fecha_minuta_hint": fecha_minuta_hint or "",
                 "ciiu_catalogo": ciiu_catalogo,
+                "service_rules": service_rules,
                 "payload_base": base_payload.model_dump(by_alias=True),
             },
         )
