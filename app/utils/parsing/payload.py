@@ -78,10 +78,17 @@ def normalize_payload(
     obj["valores"] = valores
 
     bienes_in = obj.get("bienes", [])
-    obj["bienes"] = [
+    bienes_norm = [
         normalize_bien(b, zona_repo=zona_repo, texto_contexto=texto_contexto)
         for b in (bienes_in if isinstance(bienes_in, list) else [])
     ]
+    
+    # ✅ Garantizar que bienes NUNCA quede totalmente vacío ([]). 
+    # Si la IA falló o no halló bienes, devolvemos 1 objeto vacío como dicta el payload base.
+    if len(bienes_norm) == 0:
+        bienes_norm = [normalize_bien({}, zona_repo=zona_repo, texto_contexto=texto_contexto)]
+        
+    obj["bienes"] = bienes_norm
 
     # ✅ al final, convierte todo a MAYÚSCULAS
     return uppercase_payload(obj)
