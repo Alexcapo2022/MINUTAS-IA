@@ -112,7 +112,7 @@ class MinutaService:
                 "contenido": contenido,
                 "fecha_minuta_hint": fecha_minuta_hint or "",
                 "ciiu_catalogo": ciiu_catalogo,
-                "service_rules": service_rules,
+                "reglas_servicio": service_rules,
                 "payload_base": base_payload.model_dump(by_alias=True),
             },
         )
