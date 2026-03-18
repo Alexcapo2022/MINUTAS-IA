@@ -45,9 +45,13 @@ class MinutaService:
 
         # 1) Texto del archivo
         contenido = await get_text_from_upload(file)
+        # --- DEBUG DUMP ---
+        with open("dumped_pdf_text.txt", "w", encoding="utf-8") as f_dump:
+            f_dump.write(contenido)
+        # ------------------
         t1 = time.perf_counter()
         print(
-            f"[MINUTA] t1(get_text)={_ms(t1-t0)}ms"
+            f"[MINUTA] t1(get_text)={_ms(t1-t0)}ms, dumped to dumped_pdf_text.txt"
         )
 
         # 2) Prompt + Servicio desde BD
