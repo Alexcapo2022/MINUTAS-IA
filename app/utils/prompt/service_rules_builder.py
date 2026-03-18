@@ -124,6 +124,7 @@ def _build_bienes_rule(in_bienes: int, in_aporte_bienes: int) -> str:
         "  - En la raíz 'bienes': Crea 1 objeto distinto POR CADA ítem individual detallado en el texto. ¡No omitas ninguno, extrae todos!",
         "  - El campo 'tipo_bien' DEBE ser estrictamente 'BIENES' o 'ACCIONES Y DERECHOS' (usa siempre 'BIENES' para muebles/equipos).",
         "  - El campo 'clase_bien' DEBE ser estrictamente uno de: AERONAVES, CONCESIONES, DERECHOS DE PROPIEAD INTELECTUAL, PREDIOS, MAQUINARIA Y EQUIPOS, MINAS CANTERAS Y DEPOSITOS DE HIDRO, NAVES, VEHICULOS TERRESTRRES, CREDITOS, OTROS NO ESPECIFICADOS, SIN OBJETOS, PERSONAS JURIDICAS.",
+        "  - El campo 'otros_bienes' DEBE contener toda la descripción minuciosa del bien (ej. '05 JUEGO DE MUEBLES PARA SALA DE ESPERA, MARCA: NACIONAL, MATERIAL: CUERO...').",
     ]
 
     if in_aporte_bienes == 1:
