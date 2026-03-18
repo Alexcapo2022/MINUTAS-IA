@@ -162,6 +162,7 @@ class TestBuildServiceRulesText:
         assert "¡ALERTA CRÍTICA!" in resultado
         assert "ESTRICTAMENTE PROHIBIDO AGRUPAR en 1 objeto por persona." in resultado
         assert "¡PROHIBIDO EXTRAR RESÚMENES O TÍTULOS!" in resultado
+        assert "EJEMPLO DE SALIDA (Aplica esto para los 15 o más items):" in resultado
         assert "APORTE DE CAPITAL CON BIENES (REGLA MATEMÁTICA OBLIGATORIA)" not in resultado
 
     def test_bienes_con_aporte_capital(self):
