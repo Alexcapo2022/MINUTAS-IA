@@ -159,10 +159,9 @@ class TestBuildServiceRulesText:
         resultado = build_service_rules_text(servicio)
         
         assert "En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados." in resultado
-        assert "¡ALERTA CRÍTICA!" in resultado
-        assert "ESTRICTAMENTE PROHIBIDO AGRUPAR en 1 objeto por persona." in resultado
-        assert "¡PROHIBIDO EXTRAR RESÚMENES O TÍTULOS!" in resultado
-        assert "EJEMPLO DE SALIDA (Aplica esto para los 15 o más items):" in resultado
+        assert "REGLAS ESTRICTAS DE AGRUPACIÓN (¡LEER CON CUIDADO!):" in resultado
+        assert "BIENES CON PARTIDA REGISTRAL" in resultado
+        assert "BIENES SIN PARTIDA REGISTRAL" in resultado
         assert "APORTE DE CAPITAL CON BIENES (REGLA MATEMÁTICA OBLIGATORIA)" not in resultado
 
     def test_bienes_con_aporte_capital(self):

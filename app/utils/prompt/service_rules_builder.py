@@ -122,18 +122,15 @@ def _build_bienes_rule(in_bienes: int, in_aporte_bienes: int) -> str:
         "- BIENES FÍSICOS O INTANGIBLES:",
         f"  - Estado: {estado}.",
         "  - En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados.",
-        "  - ¡ALERTA CRÍTICA! A diferencia de 'medioPago' donde agrupaste por aportante, aquí en 'bienes' ESTÁ ESTRICTAMENTE PROHIBIDO AGRUPAR en 1 objeto por persona.",
-        "  - ¡PROHIBIDO EXTRAR RESÚMENES O TÍTULOS! No devuelvas 'APORTES EN BIENES NO DINERARIOS'. Tienes que bajar a la VERDADERA TABLA y extraer la descripción EXACTA de los 15 o más muebles.",
-        "  - DEBES leer cada línea individual (ej: '05 JUEGOS DE MUEBLES', '13 ESTANTES', '01 COMPUTADORA INTEL', '01 TELEVISOR LG') y crear para CADA línea UN OBJETO {...} INDEPENDIENTE.",
-        "  - EJEMPLO DE SALIDA (Aplica esto para los 15 o más items):",
-        "    \"bienes\": [",
-        "       { \"tipo_bien\": \"BIENES\", \"clase_bien\": \"OTROS NO ESPECIFICADOS\", \"otros_bienes\": \"05 JUEGO DE MUEBLES...\", \"partida_registral\": \"\", ... },",
-        "       { \"tipo_bien\": \"BIENES\", \"clase_bien\": \"MAQUINARIA Y EQUIPOS\", \"otros_bienes\": \"01 COMPUTADORA INTEL...\", \"partida_registral\": \"\", ... }",
-        "    ]",
-        "  - Si en el texto hay 7 cosas de Fredy y 6 de Segundo, el arreglo final 'bienes' DEBE MEDIR 13 objetos de largo.",
-        "  - El campo 'tipo_bien' DEBE ser estrictamente 'BIENES' o 'ACCIONES Y DERECHOS' (usa siempre 'BIENES' para muebles/equipos).",
-        "  - El campo 'clase_bien' usa: 'MAQUINARIA Y EQUIPOS' (teles, computadoras) o 'OTROS NO ESPECIFICADOS' (sillas, estantes).",
-        "  - El campo 'otros_bienes' DEBE llevar la cadena literal entera del mueble (ej. '05 JUEGO DE MUEBLES, MARCA: NACIONAL, MATERIAL: CUERO').",
+        "  - REGLAS ESTRICTAS DE AGRUPACIÓN (¡LEER CON CUIDADO!):",
+        "    1. BIENES CON PARTIDA REGISTRAL (Vehículos, Inmuebles, Terrenos, etc.):",
+        "       - Si el bien especifica una Partida Registral, **ES OBLIGATORIO** crear UN OBJETO INDIVIDUAL para CADA uno de ellos.",
+        "       - El campo 'partida_registral' debe ser mapeado exactamente.",
+        "    2. BIENES SIN PARTIDA REGISTRAL (Muebles, computadoras, estantes, sillas, etc.):",
+        "       - **PUEDES AGRUPARLOS**. No es necesario listar silla por silla.",
+        "       - Crea 1 solo objeto por aportante que resuma estos bienes.",
+        "       - El campo 'otros_bienes' puede ser un resumen como 'APORTES EN BIENES NO DINERARIOS DE [NOMBRE DEL OTORGANTE]'.",
+        "       - El campo 'tipo_bien' debe ser 'BIENES' y 'clase_bien' 'OTROS NO ESPECIFICADOS'."
     ]
 
     if in_aporte_bienes == 1:
