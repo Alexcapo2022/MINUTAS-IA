@@ -158,9 +158,9 @@ class TestBuildServiceRulesText:
         servicio = MockServicio(in_bienes=1)
         resultado = build_service_rules_text(servicio)
         
-        assert "BIENES FÍSICOS O INTANGIBLES" in resultado
-        assert "Estado: OBLIGATORIO." in resultado
-        assert "UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados" in resultado
+        assert "En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados." in resultado
+        assert "¡ALERTA CRÍTICA!" in resultado
+        assert "ESTRICTAMENTE PROHIBIDO AGRUPAR en 1 objeto por persona." in resultado
         assert "APORTE DE CAPITAL CON BIENES (REGLA MATEMÁTICA OBLIGATORIA)" not in resultado
 
     def test_bienes_con_aporte_capital(self):

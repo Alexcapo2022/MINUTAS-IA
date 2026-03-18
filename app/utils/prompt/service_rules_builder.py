@@ -121,12 +121,13 @@ def _build_bienes_rule(in_bienes: int, in_aporte_bienes: int) -> str:
     lines = [
         "- BIENES FÍSICOS O INTANGIBLES:",
         f"  - Estado: {estado}.",
-        "  - En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados (estantes, computadoras, sillas, escritorios, televisores, etc.).",
-        "  - ¡IMPORTANTE! Aunque la estructura de 'bienes' tenga campos como 'partida_registral' o 'numero_psm', TODOS los muebles de oficina y equipos informáticos DEBEN registrarse ahí. (Deja los campos formales vacíos, pero CREA el objeto).",
-        "  - Por CADA renglón o ítem que encuentres (ej. '05 JUEGOS DE MUEBLES...', '13 ESTANTES...'), CREA UN OBJETO {...} NUEVO y agrégalo a la lista 'bienes'. Si hay 15 ítems aportados, la lista 'bienes' OBLIGATORIAMENTE tendrá 15 objetos.",
+        "  - En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados.",
+        "  - ¡ALERTA CRÍTICA! A diferencia de 'medioPago' donde agrupaste por aportante, aquí en 'bienes' ESTÁ ESTRICTAMENTE PROHIBIDO AGRUPAR en 1 objeto por persona.",
+        "  - DEBES leer cada línea individual (ej: '05 JUEGOS DE MUEBLES', '13 ESTANTES', '01 COMPUTADORA INTEL', '01 TELEVISOR LG') y crear para CADA línea UN OBJETO {...} INDEPENDIENTE.",
+        "  - Si en el texto hay 7 cosas de Fredy y 6 de Segundo, el arreglo final 'bienes' DEBE MEDIR 13 objetos de largo.",
         "  - El campo 'tipo_bien' DEBE ser estrictamente 'BIENES' o 'ACCIONES Y DERECHOS' (usa siempre 'BIENES' para muebles/equipos).",
-        "  - El campo 'clase_bien' usa: 'MAQUINARIA Y EQUIPOS' (para computadoras, teles, etc.) o 'OTROS NO ESPECIFICADOS' (estantes, sillas, etc.).",
-        "  - El campo 'otros_bienes' DEBE tener todo el detalle minucioso del renglón (ej. '05 JUEGO DE MUEBLES, MARCA: NACIONAL, MATERIAL: CUERO...'). Si lees un resumen como 'APORTES EN BIENES', IGNÓRALO Y BUSCA EL DETALLE REAL.",
+        "  - El campo 'clase_bien' usa: 'MAQUINARIA Y EQUIPOS' (teles, computadoras) o 'OTROS NO ESPECIFICADOS' (sillas, estantes).",
+        "  - El campo 'otros_bienes' DEBE llevar la cadena literal entera del mueble (ej. '05 JUEGO DE MUEBLES, MARCA: NACIONAL, MATERIAL: CUERO').",
     ]
 
     if in_aporte_bienes == 1:
