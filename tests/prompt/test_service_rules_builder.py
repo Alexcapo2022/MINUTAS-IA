@@ -157,8 +157,9 @@ class TestBuildServiceRulesText:
     def test_bienes_simples(self):
         servicio = MockServicio(in_bienes=1)
         resultado = build_service_rules_text(servicio)
-        
-        assert "En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados." in resultado
+
+        assert "UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados." in resultado
+        assert "IMPORTANTE (DISTRITO): El ubigeo (Distrito, Provincia) del bien DEBE ser el de la ubicación física" in resultado
         assert "REGLAS ESTRICTAS DE AGRUPACIÓN (¡LEER CON CUIDADO!):" in resultado
         assert "BIENES CON PARTIDA REGISTRAL" in resultado
         assert "BIENES SIN PARTIDA REGISTRAL" in resultado

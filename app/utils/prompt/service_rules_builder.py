@@ -91,7 +91,8 @@ def _build_participante_rule(
         lines.append(
             "  - REGLA DE REPRESENTACIÓN: Si detectas una PERSONA JURIDICA actuando a través "
             "de un representante natural con DNI, extrae a AMBOS como objetos separados "
-            "(Empresa + Persona) en esta misma lista."
+            "(Empresa + Persona) en esta misma lista. En 'relacion' del representante pon "
+            "EXACTAMENTE: 'REPRESENTANTE DE [NOMBRE DE LA EMPRESA]'."
         )
 
     return "\n".join(lines)
@@ -111,9 +112,9 @@ def _build_medio_pago_rule(in_medio_pago: int) -> str:
 
     if in_medio_pago == 1:
         lines.append(
-            "  - Revisa con especial cuidado bancos, cuentas, cheques, depósitos, "
-            "transferencias, constancias de pago, voucher, efectivo, documento de pago "
-            "o cualquier evidencia de forma de pago."
+            "  - MEDIO DE PAGO (OBLIGATORIO):\n"
+            "    - UBICA EN EL TEXTO frases como 'cheque de gerencia', 'depósito', 'transferencia' o 'efectivo'.\n"
+            "    - Si mencionan bancos, anótalos en el campo 'bancos'."
         )
 
     return "\n".join(lines)
@@ -127,8 +128,10 @@ def _build_bienes_rule(in_bienes: int, in_aporte_bienes: int) -> str:
     estado = map_obligatoriedad_prompt(in_bienes)
     lines = [
         "- BIENES FÍSICOS O INTANGIBLES:",
-        f"  - Estado: {estado}.",
-        "  - En la raíz 'bienes': UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados.",
+        f"  - Estado: {map_obligatoriedad_prompt(in_bienes)}.",
+        "  - UBICA EN EL TEXTO la tabla o lista donde se describen los bienes aportados.",
+        "  - IMPORTANTE (DISTRITO): El ubigeo (Distrito, Provincia) del bien DEBE ser el de "
+        "la ubicación física del inmueble descrito, NO el domicilio de los otorgantes.",
         "  - REGLAS ESTRICTAS DE AGRUPACIÓN (¡LEER CON CUIDADO!):",
         "    1. BIENES CON PARTIDA REGISTRAL (Vehículos, Inmuebles, Terrenos, etc.):",
         "       - Si el bien especifica una Partida Registral, **ES OBLIGATORIO** crear UN OBJETO INDIVIDUAL para CADA uno de ellos.",
