@@ -31,6 +31,7 @@ class MockServicio:
         self.min_otro    = kwargs.get("min_otro", 0)
         self.in_tipo_otro = kwargs.get("in_tipo_otro", 0)
 
+        self.in_valor           = kwargs.get("in_valor", 0)
         self.in_medio_pago      = kwargs.get("in_medio_pago", 0)
         self.in_oportunidad_pago = kwargs.get("in_oportunidad_pago", 0)
 
@@ -179,3 +180,10 @@ class TestBuildServiceRulesText:
         result = build_service_rules_text(svc)
         assert "REGLA DE REPRESENTACIÓN:" in result
         assert "extrae a AMBOS como objetos separados" in result
+
+    def test_reconciliacion_financiera(self):
+        """Si in_valor=1 e in_medio_pago=1, debe incluir la regla de reconciliación."""
+        svc = MockServicio(in_valor=1, in_medio_pago=1)
+        result = build_service_rules_text(svc)
+        assert "REGLA DE RECONCILIACIÓN FINANCIERA (CRÍTICO):" in result
+        assert "DEBE IGUALAR a la suma en 'valores.medioPago'" in result

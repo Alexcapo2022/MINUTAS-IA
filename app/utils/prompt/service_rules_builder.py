@@ -98,6 +98,20 @@ def _build_participante_rule(
     return "\n".join(lines)
 
 
+def _build_valores_rule(in_valor: int) -> str:
+    """Genera las instrucciones para extraer el precio o valor de transferencia."""
+    if in_valor <= 0:
+        return ""
+
+    estado = map_obligatoriedad_prompt(in_valor)
+    lines = [
+        "- VALOR DE TRANSFERENCIA:",
+        f"  - Estado: {estado}.",
+        "  - UBICA EN EL TEXTO el precio o valor acordado para la transacción."
+    ]
+    return "\n".join(lines)
+
+
 def _build_medio_pago_rule(in_medio_pago: int) -> str:
     if in_medio_pago <= 0:
         return ""
@@ -106,15 +120,24 @@ def _build_medio_pago_rule(in_medio_pago: int) -> str:
     lines = [
         "- MEDIO DE PAGO:",
         f"  - Estado: {estado}.",
-        "  - MEDIO PAGO EXACTO: El campo 'medio_pago' dentro de valores.medioPago[] DEBE ser UNO de estos exactos (si no se especifica escoge OTROS MEDIOS DE PAGO):",
-        f"    {', '.join(_MEDIOS_PAGO_PERMITIDOS)}",
     ]
-
     if in_medio_pago == 1:
         lines.append(
-            "  - MEDIO DE PAGO (OBLIGATORIO):\n"
-            "    - UBICA EN EL TEXTO frases como 'cheque de gerencia', 'depósito', 'transferencia' o 'efectivo'.\n"
-            "    - Si mencionan bancos, anótalos en el campo 'bancos'."
+            "  - MEDIO PAGO EXACTO: El campo 'medio_pago' dentro de valores.medioPago[] DEBE ser UNO de estos exactos "
+            "(si no se especifica escoge OTROS MEDIOS DE PAGO):"
+        )
+        lines.append(
+            "    DEPOSITO EN CUENTA, GIRO, TRANSFERENCIA DE FONDOS, ORDEN DE PAGO, TARJETA DE DEBITO, "
+            "TARJETA DE CREDITO EMITIDA EN EL PAIS, CHEQUE DE GERENCIA, EFECTIVO 008- MENORES A 5000, "
+            "EFECTIVO 009- EN LOS DEMAS CASOS, MEDIOS DE PAGO USADOS EN COMERCIO EXTERIOR, "
+            "DOCUMENTOS DE EDPYMES Y COOPERATIVAS DE AHORRO Y CREDITO, TARJETA DE CREDITO EMITIDA O NO EN EL PAIS POR ENT, "
+            "TARJETAS DE CREDITO EMITIDAS EN EL EXTERIOR POR BA, TARJETAS DE CREDITO EMITIDAS EN EL EXTERIOR POR BA, BIEN MUEBLE, BIEN INMUEBLE, OTROS MEDIOS DE PAGO"
+        )
+        lines.append(
+            "    - RESTRICCIÓN: Si el texto menciona 'cheque de gerencia', el valor DEBE ser 'CHEQUE DE GERENCIA'."
+        )
+        lines.append(
+            "    - Si mencionan bancos, anótalos en el campo 'bancos' del mismo objeto."
         )
 
     return "\n".join(lines)
@@ -177,9 +200,21 @@ def _build_oportunidad_pago_rule(in_oportunidad_pago: int) -> str:
     return "\n".join(lines)
 
 
-# ── Función pública principal ──────────────────────────────────────────────────
+def _build_reconciliacion_rule(in_valor: int, in_medio_pago: int) -> str:
+    """Inyecta la regla de oro para que los montos de Transferencia y Medio de Pago coincidan."""
+    if in_valor == 1 and in_medio_pago == 1:
+        return (
+            "- REGLA DE RECONCILIACIÓN FINANCIERA (CRÍTICO):\n"
+            "  - El monto total en 'valores.transferencia' DEBE IGUALAR a la suma en 'valores.medioPago'.\n"
+            "  - NUNCA dejes el campo 'valor_bien' en 0.0 si el servicio tiene un monto de transferencia.\n"
+            "  - Si solo hay 1 transferencia, el medio de pago DEBE tener ese mismo monto."
+        )
+    return ""
 
-def build_service_rules_text(servicio_obj) -> str:
+
+# ── Función Principal: Orquestador ──────────────────────────────────────────
+
+def build_service_rules_text(servicio_obj: object) -> str:
     """
     Genera el bloque completo de reglas parametrizadas para inyectar en el prompt.
 
@@ -214,9 +249,14 @@ def build_service_rules_text(servicio_obj) -> str:
             field_path="participantes.otorgantes",  # los "otros" suelen ir en otorgantes
         ),
         # Valores
+        _build_valores_rule(_safe_int(servicio_obj, "in_valor")),
         _build_medio_pago_rule(_safe_int(servicio_obj, "in_medio_pago")),
         _build_oportunidad_pago_rule(_safe_int(servicio_obj, "in_oportunidad_pago")),
-        
+        # Reconciliación (si aplica)
+        _build_reconciliacion_rule(
+            in_valor=_safe_int(servicio_obj, "in_valor"),
+            in_medio_pago=_safe_int(servicio_obj, "in_medio_pago"),
+        ),
         # Bienes
         _build_bienes_rule(
             in_bienes=_safe_int(servicio_obj, "in_bienes"),
