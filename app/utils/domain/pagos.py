@@ -77,13 +77,7 @@ def normalize_transferencia(
     # ✅ Inferencia de moneda si viene vacía pero hay monto
     monto = float(t.get("monto", 0.0) or 0.0)
     if not moneda and monto > 0 and nombre_servicio:
-        # Buscamos indicios en el nombre del servicio o texto (simplificado)
-        from ..parsing.text import _norm
-        ctx = _norm(nombre_servicio) # O podrías pasar el texto_contexto si fuera necesario
-        # Por ahora, si es compraventa peruana y no dice nada, lo proactivo es buscar S/ o $ en reglas generales
-        # Pero mejor usemos una lógica de búsqueda simple en el texto si lo tuviéramos.
-        # Como no tenemos texto_contexto aquí (solo en normalize_payload), 
-        # confiaremos en que el log nos diga por qué el LLM mandó vacío.
+        # Puesto que _norm no es global, usaremos el mismo uppercase rápido si hiciese falta
         pass
 
     # ✅ co_moneda: intenta payload y luego catálogo
