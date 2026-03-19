@@ -146,9 +146,16 @@ def _resolve_catalogs_and_ciiu(
     # Catálogos (PAÍS / OCUP / EC)
     # -------------------------
     if pais_repo is not None and pais and not co_pais:
-        row = pais_repo.find_by_name(pais)
+        row, matched_by_gerundio = pais_repo.find_by_name_or_gentilicio(pais)
         if row:
             co_pais = getattr(row, "co_pais", None)
+            # Si el match fue por gerundio_pais, usamos ese valor como campo visual
+            # (ej: LLM mandó "SUIZO" → BD retorna gerundio_pais="SUIZO" → pais="SUIZO" ✅)
+            # Si el match fue por no_pais, el pais ya está bien, no lo tocamos
+            if matched_by_gerundio:
+                gerundio = (getattr(row, "gerundio_pais", None) or "").strip().upper()
+                if gerundio:
+                    pais = gerundio
 
     if ocup_repo is not None and ocupacion and not co_ocupacion:
         original_ocup = ocupacion

@@ -40,12 +40,48 @@ class PaisRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def find_by_name(self, nombre: str) -> Pais | None:
+    def find_by_name_or_gentilicio(self, nombre: str) -> tuple["Pais | None", bool]:
+        """
+        Busca un país por nombre o por gentilicio (gerundio_pais).
+
+        Estrategia:
+          1) Exact match: UPPER(no_pais) == nombre      → matched_by_gerundio=False
+          2) Fallback:    UPPER(gerundio_pais) == nombre → matched_by_gerundio=True
+
+        Returns:
+            (row, matched_by_gerundio)
+            - row: objeto Pais o None si no se encontró
+            - matched_by_gerundio: True si el match fue por gerundio_pais
+        """
         n = _norm(nombre)
         if not n:
-            return None
-        stmt = select(Pais).where(func.upper(Pais.no_pais) == n).where(Pais.in_estado == 1).limit(1)
-        return self.db.execute(stmt).scalars().first()
+            return None, False
+
+        # 1) Intento por nombre oficial del país (no_pais)
+        stmt = (
+            select(Pais)
+            .where(func.upper(Pais.no_pais) == n)
+            .where(Pais.in_estado == 1)
+            .limit(1)
+        )
+        row = self.db.execute(stmt).scalars().first()
+        if row:
+            return row, False
+
+        # 2) Fallback por gentilicio/gerundio (gerundio_pais)
+        stmt = (
+            select(Pais)
+            .where(func.upper(Pais.gerundio_pais) == n)
+            .where(Pais.in_estado == 1)
+            .limit(1)
+        )
+        row = self.db.execute(stmt).scalars().first()
+        return row, (row is not None)
+
+    def find_by_name(self, nombre: str) -> "Pais | None":
+        """Alias backward-compatible. Retorna solo la fila (sin flag)."""
+        row, _ = self.find_by_name_or_gentilicio(nombre)
+        return row
 
 class TipoDocumentoRepository:
     def __init__(self, db: Session):
