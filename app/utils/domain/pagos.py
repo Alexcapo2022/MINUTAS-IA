@@ -67,6 +67,7 @@ def normalize_transferencia(
     moneda_repo: Optional[Any] = None,
     *,
     nombre_servicio: str = "",
+    texto_contexto: str = "",
 ) -> dict:
     if not isinstance(t, dict):
         return t
@@ -76,9 +77,14 @@ def normalize_transferencia(
     
     # ✅ Inferencia de moneda si viene vacía pero hay monto
     monto = float(t.get("monto", 0.0) or 0.0)
-    if not moneda and monto > 0 and nombre_servicio:
-        # Puesto que _norm no es global, usaremos el mismo uppercase rápido si hiciese falta
-        pass
+    if not moneda and monto > 0:
+        ctx = (texto_contexto or "").upper()
+        if "S/." in ctx or "S/" in ctx or "SOLES" in ctx:
+            moneda = "SOLES"
+        elif "USD" in ctx or "US$" in ctx or "$" in ctx:
+            moneda = "DOLARES"
+        elif "EUR" in ctx or "€" in ctx:
+            moneda = "EUROS"
 
     # ✅ co_moneda: intenta payload y luego catálogo
     co_moneda = to_int_or_none(get_str(t, "co_moneda", default=""))
@@ -126,7 +132,7 @@ def normalize_transferencia(
         "oportunidad_pago": oportunidad_pago,
     }
 
-def normalize_medio_pago(m: dict, moneda_repo: Optional[Any] = None) -> dict:
+def normalize_medio_pago(m: dict, moneda_repo: Optional[Any] = None, *, texto_contexto: str = "") -> dict:
     if not isinstance(m, dict):
         return m
 
@@ -134,6 +140,19 @@ def normalize_medio_pago(m: dict, moneda_repo: Optional[Any] = None) -> dict:
 
     raw_moneda = get_str(m, "moneda", default="")
     moneda = normalize_moneda_str(raw_moneda)
+
+    # ✅ Inferencia de moneda si viene vacía
+    valor_bien_raw = m.get("valor_bien", m.get("valorBien", 0.0))
+    valor_bien = _to_float(valor_bien_raw)
+    
+    if not moneda and valor_bien > 0:
+        ctx = (texto_contexto or "").upper()
+        if "S/." in ctx or "S/" in ctx or "SOLES" in ctx:
+            moneda = "SOLES"
+        elif "USD" in ctx or "US$" in ctx or "$" in ctx:
+            moneda = "DOLARES"
+        elif "EUR" in ctx or "€" in ctx:
+            moneda = "EUROS"
 
     # ✅ co_moneda: primero intenta lo que venga del payload (string/int), y luego catálogo
     co_moneda = to_int_or_none(get_str(m, "co_moneda", default=""))

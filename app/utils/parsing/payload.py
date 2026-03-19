@@ -69,11 +69,11 @@ def normalize_payload(
     medio_pago = valores.get("medioPago", [])
 
     valores["transferencia"] = [
-        normalize_transferencia(t, moneda_repo=moneda_repo, nombre_servicio=nombre_servicio)
+        normalize_transferencia(t, moneda_repo=moneda_repo, nombre_servicio=nombre_servicio, texto_contexto=texto_contexto)
         for t in (transferencia if isinstance(transferencia, list) else [])
     ]
     valores["medioPago"] = [
-        normalize_medio_pago(m, moneda_repo=moneda_repo) for m in (medio_pago if isinstance(medio_pago, list) else [])
+        normalize_medio_pago(m, moneda_repo=moneda_repo, texto_contexto=texto_contexto) for m in (medio_pago if isinstance(medio_pago, list) else [])
     ]
     obj["valores"] = valores
 
