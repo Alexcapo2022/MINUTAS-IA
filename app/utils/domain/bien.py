@@ -124,14 +124,30 @@ def normalize_bien(b: dict, zona_repo: Optional[Any] = None, texto_contexto: str
     ctx_up = _norm_upper(texto_contexto)
     is_inmueble = (tipo_bien == "INMUEBLES") or bool(partida_registral) or ("SUNARP" in ctx_up)
 
+    # ✅ Distrito: Si viene vacío, intentar inferir del texto (solo para inmuebles)
+    if is_inmueble and not ubigeo.get("distrito"):
+        distrito_inf = _infer_distrito_inmueble(texto_contexto)
+        if distrito_inf:
+            ubigeo["distrito"] = distrito_inf
+            print(f"[DEBUG_BIEN] distrito inferred: {distrito_inf}")
+            # Si inferimos distrito, inferimos Lima como provincia/departamento si es el caso
+            if distrito_inf in ["SAN MARTIN DE PORRES", "LA MOLINA", "PUENTE PIEDRA"]:
+                ubigeo["provincia"] = "LIMA"
+                ubigeo["departamento"] = "LIMA"
+
     if is_inmueble:
         if not zona_registral:
             zona_registral = _infer_zona_registral(texto_contexto)
+            if zona_registral:
+                print(f"[DEBUG_BIEN] zona_registral inferred: {zona_registral}")
 
         if zona_repo is not None and zona_registral and co_zona_registral is None:
             row = zona_repo.find_by_name_or_nc(zona_registral)
             if row:
                 co_zona_registral = getattr(row, "co_zona_registral", None)
+                print(f"[DEBUG_BIEN] zona_registral match: {zona_registral} | co_zona_registral={co_zona_registral}")
+            else:
+                print(f"[DEBUG_BIEN] zona_registral NOT FOUND in DB for: '{zona_registral}'")
 
     return {
         "tipo_bien": tipo_bien,

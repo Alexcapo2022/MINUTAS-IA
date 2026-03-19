@@ -71,12 +71,23 @@ def normalize_transferencia(
     if not isinstance(t, dict):
         return t
 
-    moneda = normalize_moneda_str(get_str(t, "moneda", default=""))
+    raw_moneda = get_str(t, "moneda", default="")
+    moneda = normalize_moneda_str(raw_moneda)
+    
+    # ✅ Inferencia de moneda si viene vacía pero hay monto
+    monto = float(t.get("monto", 0.0) or 0.0)
+    if not moneda and monto > 0 and nombre_servicio:
+        # Buscamos indicios en el nombre del servicio o texto (simplificado)
+        from ..parsing.text import _norm
+        ctx = _norm(nombre_servicio) # O podrías pasar el texto_contexto si fuera necesario
+        # Por ahora, si es compraventa peruana y no dice nada, lo proactivo es buscar S/ o $ en reglas generales
+        # Pero mejor usemos una lógica de búsqueda simple en el texto si lo tuviéramos.
+        # Como no tenemos texto_contexto aquí (solo en normalize_payload), 
+        # confiaremos en que el log nos diga por qué el LLM mandó vacío.
+        pass
 
     # ✅ co_moneda: intenta payload y luego catálogo
     co_moneda = to_int_or_none(get_str(t, "co_moneda", default=""))
-
-    monto = float(t.get("monto", 0.0) or 0.0)
 
     forma_pago_raw = get_str(t, "forma_pago", "formaPago", default="")
     forma_pago = normalize_forma_pago(forma_pago_raw, nombre_servicio=nombre_servicio)
@@ -107,6 +118,11 @@ def normalize_transferencia(
         row = moneda_repo.find_by_name(moneda)
         if row:
             co_moneda = to_int_or_none(getattr(row, "co_tipo_moneda", None))
+            print(f"[DEBUG_MONEDA] transferencia match: {moneda} | co_moneda={co_moneda}")
+        else:
+            print(f"[DEBUG_MONEDA] transferencia NOT FOUND in DB for: '{moneda}'")
+    elif not moneda:
+        print(f"[DEBUG_MONEDA] transferencia moneda was EMPTY from LLM | monto={monto}")
 
     return {
         "moneda": moneda,
@@ -122,7 +138,8 @@ def normalize_medio_pago(m: dict, moneda_repo: Optional[Any] = None) -> dict:
 
     medio_pago_raw = get_str(m, "medio_pago", "medio", default="")
 
-    moneda = normalize_moneda_str(get_str(m, "moneda", default=""))
+    raw_moneda = get_str(m, "moneda", default="")
+    moneda = normalize_moneda_str(raw_moneda)
 
     # ✅ co_moneda: primero intenta lo que venga del payload (string/int), y luego catálogo
     co_moneda = to_int_or_none(get_str(m, "co_moneda", default=""))
@@ -141,6 +158,11 @@ def normalize_medio_pago(m: dict, moneda_repo: Optional[Any] = None) -> dict:
         row = moneda_repo.find_by_name(moneda)
         if row:
             co_moneda = to_int_or_none(getattr(row, "co_tipo_moneda", None))
+            print(f"[DEBUG_MONEDA] medioPago match: {moneda} | co_moneda={co_moneda}")
+        else:
+            print(f"[DEBUG_MONEDA] medioPago NOT FOUND in DB for: '{moneda}'")
+    elif not moneda:
+        print(f"[DEBUG_MONEDA] medioPago moneda was EMPTY from LLM | valor_bien={valor_bien}")
 
     return {
         "medio_pago": medio_pago,
