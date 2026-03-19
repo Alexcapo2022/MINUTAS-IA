@@ -137,6 +137,9 @@ def _build_medio_pago_rule(in_medio_pago: int) -> str:
             "    - RESTRICCIÓN: Si el texto menciona 'cheque de gerencia', el valor DEBE ser 'CHEQUE DE GERENCIA'."
         )
         lines.append(
+            "    - SIEMPRE que el texto especifique un VALOR INDIVIDUAL para cada bien (ej: Dep. 603 = X; Estac. 04 = Y), **DEBES CREAR UN OBJETO SEPARADO** en `valores.medioPago[]` para cada uno, con su campo 'valor_bien' correspondiente."
+        )
+        lines.append(
             "    - Si mencionan bancos, anótalos en el campo 'bancos' del mismo objeto."
         )
 
@@ -202,13 +205,13 @@ def _build_oportunidad_pago_rule(in_oportunidad_pago: int) -> str:
 
 def _build_reconciliacion_rule(in_valor: int, in_medio_pago: int) -> str:
     """Inyecta la regla de oro para que los montos de Transferencia y Medio de Pago coincidan."""
-    # Si pedimos medio de pago, SIEMPRE pedimos reconciliación (aunque in_valor sea 0)
-    if in_medio_pago >= 1:
+    # Si pedimos medio de pago, SIEMPRE pedimos reconciliación
+    if (in_medio_pago or 0) >= 1:
         return (
             "- REGLA DE RECONCILIACIÓN FINANCIERA (CRÍTICO):\n"
-            "  - El monto total en 'valores.transferencia' DEBE IGUALAR a la suma en 'valores.medioPago'.\n"
-            "  - NUNCA dejes el campo 'valor_bien' en 0.0 si el servicio tiene un monto de transferencia.\n"
-            "  - Si solo hay 1 transferencia, el medio de pago DEBE tener ese mismo monto."
+            "  - El monto total en 'valores.transferencia' DEBE IGUALAR a la SUMA de todos los 'valor_bien' que listes en 'valores.medioPago'.\n"
+            "  - NUNCA agrupes los montos en un solo ítem si el texto original los desglosa (si hay 2 departamentos valorados por separado, DEBE haber 2 objetos en medioPago).\n"
+            "  - Si solo hay 1 transferencia, pero el medio de pago tiene desglose, la suma de este DEBE coincidir con la transferencia."
         )
     return ""
 
