@@ -87,6 +87,13 @@ def _build_participante_rule(
             '"representante legal", "gerente general", "apoderado de la empresa", "por intermedio de".'
         )
 
+    if tipo_value in (2, 3):
+        lines.append(
+            "  - REGLA DE REPRESENTACIÓN: Si detectas una PERSONA JURIDICA actuando a través "
+            "de un representante natural con DNI, extrae a AMBOS como objetos separados "
+            "(Empresa + Persona) en esta misma lista."
+        )
+
     return "\n".join(lines)
 
 

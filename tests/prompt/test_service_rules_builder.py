@@ -169,6 +169,12 @@ class TestBuildServiceRulesText:
         resultado = build_service_rules_text(servicio)
 
         assert "Estado: OPCIONAL." in resultado
-        assert "APORTE DE CAPITAL CON BIENES (REGLA MATEMÁTICA OBLIGATORIA)" in resultado
+        assert "APORTE DE CAPITAL CON BIENES O DINERO (REGLAS OBLIGATORIAS):" in resultado
         assert "En 'valores.transferencia': 1 solo objeto con el monto TOTAL SUMADO" in resultado
-        assert "Crea EXACTAMENTE 1 objeto por cada aportante que dio bienes" in resultado
+
+    def test_representacion_automatica(self):
+        """La regla de representación debe inyectarse siempre que el tipo permita Jurídica."""
+        svc = MockServicio(min_otorgante=1, in_tipo_otorgante=3)
+        result = build_service_rules_text(svc)
+        assert "REGLA DE REPRESENTACIÓN:" in result
+        assert "extrae a AMBOS como objetos separados" in result
