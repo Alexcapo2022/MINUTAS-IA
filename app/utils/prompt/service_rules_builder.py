@@ -202,7 +202,8 @@ def _build_oportunidad_pago_rule(in_oportunidad_pago: int) -> str:
 
 def _build_reconciliacion_rule(in_valor: int, in_medio_pago: int) -> str:
     """Inyecta la regla de oro para que los montos de Transferencia y Medio de Pago coincidan."""
-    if in_valor == 1 and in_medio_pago == 1:
+    # Si pedimos medio de pago, SIEMPRE pedimos reconciliación (aunque in_valor sea 0)
+    if in_medio_pago >= 1:
         return (
             "- REGLA DE RECONCILIACIÓN FINANCIERA (CRÍTICO):\n"
             "  - El monto total en 'valores.transferencia' DEBE IGUALAR a la suma en 'valores.medioPago'.\n"

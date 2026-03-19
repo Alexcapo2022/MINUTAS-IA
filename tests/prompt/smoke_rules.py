@@ -28,6 +28,7 @@ class MockServicio:
         self.min_otro     = kwargs.get("min_otro", 0)
         self.in_tipo_otro = kwargs.get("in_tipo_otro", 0)
 
+        self.in_valor            = kwargs.get("in_valor", 0)
         self.in_medio_pago       = kwargs.get("in_medio_pago", 0)
         self.in_oportunidad_pago = kwargs.get("in_oportunidad_pago", 0)
 

@@ -40,10 +40,16 @@ def _resolve_medio_pago(medio_pago_raw: str, valor_bien: float) -> str:
         return ""
 
     if not raw:
+        print(f"[DEBUG_PAGO] medio_pago was EMPTY. Using default: {DEFAULT_MEDIO_PAGO}")
         return DEFAULT_MEDIO_PAGO
 
-    matched = normalize_medio_pago_enum(raw)  # usa tu lógica actual (enums.py)
-    return matched or DEFAULT_MEDIO_PAGO
+    matched = normalize_medio_pago_enum(raw)
+    if not matched:
+        print(f"[DEBUG_PAGO] medio_pago '{raw}' not in enum. Using default: {DEFAULT_MEDIO_PAGO}")
+        return DEFAULT_MEDIO_PAGO
+
+    print(f"[DEBUG_PAGO] medio_pago resolved: {matched}")
+    return matched
 
 def normalize_moneda_str(raw: str) -> str:
     s = clean_spaces((raw or "")).upper()
@@ -166,6 +172,11 @@ def normalize_medio_pago(m: dict, moneda_repo: Optional[Any] = None, *, texto_co
     fecha_pago = get_str(m, "fecha_pago", "fechaDocumentoPago", default="")
     bancos = get_str(m, "bancos", "banco", default="")
     documento_pago = get_str(m, "documento_pago", "numeroDocumentoPago", default="")
+
+    if bancos:
+        print(f"[DEBUG_PAGO] bancos detected: {bancos}")
+    if documento_pago:
+        print(f"[DEBUG_PAGO] documento_pago detected: {documento_pago}")
 
     if moneda_repo is not None and moneda and not co_moneda:
         row = moneda_repo.find_by_name(moneda)

@@ -6,6 +6,24 @@ from ..domain.participante import normalize_participante
 from ..domain.pagos import normalize_transferencia, normalize_medio_pago
 from ..domain.bien import normalize_bien
 
+
+def _reconciliar_montos_financieros(valores: dict):
+    """
+    Regla de Negocio: Si hay 1 monto en transferencia y medioPago tiene valor_bien=0.0,
+    se asume que el medio de pago respalda ese monto.
+    """
+    trans = valores.get("transferencia", [])
+    pagos = valores.get("medioPago", [])
+
+    if len(trans) == 1 and len(pagos) == 1:
+        monto_t = float(trans[0].get("monto", 0.0) or 0.0)
+        monto_p = float(pagos[0].get("valor_bien", 0.0) or 0.0)
+
+        if monto_t > 0 and monto_p == 0:
+            pagos[0]["valor_bien"] = monto_t
+            print(f"[RECONCILIACION] Autocompletado valor_bien={monto_t} desde transferencia")
+
+
 def normalize_payload(
     payload: dict,
     ciiu_repo: Optional[Any] = None,
@@ -72,9 +90,15 @@ def normalize_payload(
         normalize_transferencia(t, moneda_repo=moneda_repo, nombre_servicio=nombre_servicio, texto_contexto=texto_contexto)
         for t in (transferencia if isinstance(transferencia, list) else [])
     ]
+
+    # ✅ RECONCILIACIÓN FINANCIERA: Si uno tiene valor y el otro no (pero existe el objeto), balancear.
+    # Se hace ANTES de normalizar medio_pago para que el resolve_medio_pago vea el monto.
+    _reconciliar_montos_financieros(valores)
+
     valores["medioPago"] = [
         normalize_medio_pago(m, moneda_repo=moneda_repo, texto_contexto=texto_contexto) for m in (medio_pago if isinstance(medio_pago, list) else [])
     ]
+
     obj["valores"] = valores
 
     bienes_in = obj.get("bienes", [])
