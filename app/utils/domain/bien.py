@@ -3,6 +3,7 @@ from typing import Any, Optional
 
 from ..parsing.text import clean_spaces, get_str
 from ..parsing.cast import to_int_or_none
+from ..parsing.date_utils import normalize_date_str
 from ..common.ubicacion import normalize_ubigeo
 
 def _norm_upper(s: str) -> str:
@@ -71,8 +72,8 @@ def normalize_bien(b: dict, zona_repo: Optional[Any] = None, texto_contexto: str
     zona_registral = get_str(b, "zona_registral", "zonaRegistral", default="")
     co_zona_registral = b.get("co_zona_registral", None)
 
-    fecha_adquisicion = get_str(b, "fecha_adquisicion", default="")
-    fecha_minuta = get_str(b, "fecha_minuta", "fechaMinuta", default="")
+    fecha_adquisicion = normalize_date_str(get_str(b, "fecha_adquisicion", default=""))
+    fecha_minuta = normalize_date_str(get_str(b, "fecha_minuta", "fechaMinuta", default=""))
     opcion_bien_mueble = get_str(b, "opcion_bien_mueble", "opcionBienMueble", default="")
     numero_psm = get_str(b, "numero_psm", "placaSerieMotor", default="")
 

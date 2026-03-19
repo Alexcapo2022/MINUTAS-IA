@@ -2,6 +2,7 @@ from typing import Any, Optional
 
 from ..parsing.text import clean_spaces, get_str
 from ..parsing.cast import to_int_or_none
+from ..parsing.date_utils import normalize_date_str
 from ..parsing.enums import (
     DEFAULT_OPORTUNIDAD_PAGO,
     normalize_forma_pago,
@@ -169,7 +170,9 @@ def normalize_medio_pago(m: dict, moneda_repo: Optional[Any] = None, *, texto_co
     # ✅ regla nueva sin tocar enums.py
     medio_pago = _resolve_medio_pago(medio_pago_raw, valor_bien)
 
-    fecha_pago = get_str(m, "fecha_pago", "fechaDocumentoPago", default="")
+    fecha_pago_raw = get_str(m, "fecha_pago", "fechaDocumentoPago", default="")
+    fecha_pago = normalize_date_str(fecha_pago_raw)
+    
     bancos = get_str(m, "bancos", "banco", default="")
     documento_pago = get_str(m, "documento_pago", "numeroDocumentoPago", default="")
 
