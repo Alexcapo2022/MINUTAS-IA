@@ -177,11 +177,11 @@ def _resolve_catalogs_and_ciiu(
             estado_civil_raw = estado_civil_lookup
 
     # -------------------------
-    # ✅ CIIU (SOLO EMPRESA CONSTITUIDA = BENEFICIARIO + JURIDICA)
+    # ✅ CIIU (SOLO EMPRESA JURIDICA)
     # -------------------------
     rol_up = (base["rol"] or "").strip().upper()
     tipo_up = (base["tipo_persona"] or "").strip().upper()
-    allow_ciiu = (rol_up == "BENEFICIARIO" and tipo_up == "JURIDICA")
+    allow_ciiu = (tipo_up == "JURIDICA")
 
     if not allow_ciiu:
         ciiu = ""
