@@ -8,6 +8,7 @@ from app.schemas.minuta_schema import MinutaExtractResponse
 
 router = APIRouter(prefix="/api/v1/minutas", tags=["Minutas"])
 
+@router.post("", response_model=MinutaExtractResponse)
 @router.post("/", response_model=MinutaExtractResponse)
 async def extract_endpoint(
     co_cnl: str = Form(...),              # ejemplo: "0101"

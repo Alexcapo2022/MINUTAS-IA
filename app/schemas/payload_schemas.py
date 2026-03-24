@@ -98,6 +98,8 @@ class Bien(BaseModel):
     opcion_bien_mueble: str = ""
     numero_psm: str = "" # numero de placa, serie o motor
     otros_bienes: str = ""
+    pais: str = ""
+    origen_del_bien: str = ""
 
 class Acto(BaseModel):
     model_config = ConfigDict(extra="ignore")

@@ -78,6 +78,9 @@ def normalize_bien(b: dict, zona_repo: Optional[Any] = None, texto_contexto: str
     numero_psm = get_str(b, "numero_psm", "placaSerieMotor", default="")
 
     otros_bienes = get_str(b, "otros_bienes", "otrosBienes", default="")
+    pais = get_str(b, "pais", default="")
+    origen_del_bien = get_str(b, "origen_del_bien", "origenDelBien", default="")
+
     ubigeo_in = b.get("ubigeo", {}) if isinstance(b.get("ubigeo"), dict) else {}
     ubigeo = normalize_ubigeo(ubigeo_in)
 
@@ -105,6 +108,8 @@ def normalize_bien(b: dict, zona_repo: Optional[Any] = None, texto_contexto: str
             "opcion_bien_mueble": "",
             "numero_psm": "",
             "otros_bienes": "",
+            "pais": "",
+            "origen_del_bien": "",
         }
 
     # ✅ tipo_bien SOLO si GPT lo trajo
@@ -162,4 +167,6 @@ def normalize_bien(b: dict, zona_repo: Optional[Any] = None, texto_contexto: str
         "opcion_bien_mueble": opcion_bien_mueble,
         "numero_psm": numero_psm,
         "otros_bienes": otros_bienes,
+        "pais": pais,
+        "origen_del_bien": origen_del_bien,
     }
