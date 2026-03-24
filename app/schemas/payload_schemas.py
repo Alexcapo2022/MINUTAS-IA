@@ -109,6 +109,7 @@ class ParticipantesGroup(BaseModel):
 
     otorgantes: List[Participante] = Field(default_factory=list)
     beneficiarios: List[Participante] = Field(default_factory=list)
+    fiduciarios: Optional[List[Participante]] = None
 
 
 class ValoresGroup(BaseModel):

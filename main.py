@@ -2,6 +2,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi import HTTPException
 
 from app.api.v1.router import router as v1_router
 
@@ -24,6 +25,18 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return JSONResponse(
         status_code=400,
         content={"detail": "Solicitud inválida. Revisa los campos enviados.", "errors": exc.errors()},
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    detail = exc.detail
+    if detail == "There was an error parsing the body":
+        detail = "Hubo un error al procesar el cuerpo de la petición. Asegurate de enviar form-data (UploadFile) con los multipart correctos, no un JSON."
+    
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": detail},
+        headers=exc.headers
     )
 
 # routers versionados

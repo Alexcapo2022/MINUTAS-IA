@@ -35,6 +35,7 @@ def normalize_payload(
     zona_repo: Optional[Any] = None,
     texto_contexto: str = "",
     nombre_servicio: str = "",
+    min_otro: int = 0,
 ) -> dict:
     if not isinstance(payload, dict):
         return payload
@@ -54,6 +55,7 @@ def normalize_payload(
 
     otorgantes = participantes.get("otorgantes", [])
     beneficiarios = participantes.get("beneficiarios", [])
+    fiduciarios = participantes.get("fiduciarios", [])
 
     participantes["otorgantes"] = [
         normalize_participante(
@@ -77,6 +79,21 @@ def normalize_payload(
         )
         for p in (beneficiarios if isinstance(beneficiarios, list) else [])
     ]
+    
+    if min_otro >= 1:
+        participantes["fiduciarios"] = [
+            normalize_participante(
+                p,
+                ciiu_repo=ciiu_repo,
+                pais_repo=pais_repo,
+                doc_repo=doc_repo,
+                ocup_repo=ocup_repo,
+                ec_repo=ec_repo,
+            )
+            for p in (fiduciarios if isinstance(fiduciarios, list) else [])
+        ]
+    elif "fiduciarios" in participantes:
+        del participantes["fiduciarios"]
     obj["participantes"] = participantes
 
     valores = obj.get("valores", {})

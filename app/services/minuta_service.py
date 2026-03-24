@@ -187,6 +187,8 @@ class MinutaService:
         print(f"[MINUTA] normalize_payload input: has_wrapper={'payload' in payload_dump if isinstance(payload_dump, dict) else False}")
         print(f"[MINUTA] normalize_payload nombre_servicio='{nombre_servicio}'")
 
+        min_otro = int(getattr(servicio_obj, "min_otro", 0) or 0)
+
         cleaned = normalize_payload(
             payload_dump,
             ciiu_repo=self.ciiu_repo,
@@ -198,6 +200,7 @@ class MinutaService:
             zona_repo=zona_repo,
             texto_contexto=contenido,
             nombre_servicio=nombre_servicio,   # ✅ CLAVE para CONTADO
+            min_otro=min_otro,
         )
 
         # --- DEBUG MONEDA ---
