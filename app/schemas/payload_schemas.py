@@ -92,7 +92,7 @@ class Bien(BaseModel):
     ubigeo: Ubigeo = Field(default_factory=Ubigeo)
     partida_registral: str = ""
     zona_registral: str = ""
-    co_zona_registral: Optional[int] = None
+    co_zona_registral: Optional[str] = None
     fecha_adquisicion: str = ""
     fecha_minuta: str = "" ## FECHA DE ADQUISICION DE LA MINUTA DEL BIEN
     opcion_bien_mueble: str = ""

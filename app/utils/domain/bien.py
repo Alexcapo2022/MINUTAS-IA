@@ -2,7 +2,7 @@ import re
 from typing import Any, Optional
 
 from ..parsing.text import clean_spaces, get_str
-from ..parsing.cast import to_int_or_none
+from ..parsing.cast import to_int_or_none, to_str_or_none
 from ..parsing.date_utils import normalize_date_str
 from ..common.ubicacion import normalize_ubigeo
 
@@ -161,7 +161,7 @@ def normalize_bien(b: dict, zona_repo: Optional[Any] = None, texto_contexto: str
         "ubigeo": ubigeo,
         "partida_registral": partida_registral,
         "zona_registral": zona_registral,
-        "co_zona_registral": to_int_or_none(co_zona_registral),
+        "co_zona_registral": to_str_or_none(co_zona_registral),
         "fecha_adquisicion": fecha_adquisicion,
         "fecha_minuta": fecha_minuta,
         "opcion_bien_mueble": opcion_bien_mueble,

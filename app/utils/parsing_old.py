@@ -41,6 +41,12 @@ def _to_int_or_none(v):
         return int(vv) if vv.isdigit() else None
     return None
 
+def _to_str_or_none(v):
+    if v is None:
+        return None
+    res = str(v).strip()
+    return res if res else None
+
 OPORTUNIDAD_PAGO_OPTIONS = list(get_args(OportunidadPago))
 MEDIO_PAGO_OPTIONS = list(get_args(MedioPago))
 FORMA_PAGO_OPTIONS = list(get_args(FormaPago))
@@ -616,7 +622,7 @@ def normalize_bien(b: dict, zona_repo: Optional[Any] = None, texto_contexto: str
         "ubigeo": ubigeo,
         "partida_registral": partida_registral,
         "zona_registral": zona_registral,
-        "co_zona_registral": _to_int_or_none(co_zona_registral),
+        "co_zona_registral": _to_str_or_none(co_zona_registral),
         "fecha_adquisicion": fecha_adquisicion,
         "fecha_minuta": fecha_minuta,
         "opcion_bien_mueble": opcion_bien_mueble,
