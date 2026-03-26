@@ -13,3 +13,9 @@ def to_int_or_none(v: Any) -> Optional[int]:
         vv = v.strip()
         return int(vv) if vv.isdigit() else None
     return None
+
+def to_str_or_none(v: Any) -> Optional[str]:
+    if v is None:
+        return None
+    res = str(v).strip()
+    return res if res else None
