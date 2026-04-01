@@ -35,6 +35,7 @@ class Participante(BaseModel):
     razon_social: str = ""
     ciiu: str = ""
     co_ciiu: Optional[int] = None
+    objeto_empresa: Optional[str] = None   # Solo aplica para tipo_persona=JURIDICA
 
     pais: str = ""
     co_pais: Optional[int] = None
