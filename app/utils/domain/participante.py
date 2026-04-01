@@ -47,6 +47,8 @@ def _extract_base_fields(p: dict) -> dict:
             n_up = re.sub(rf"\b{re.escape(_norm_enum(ap_mat))}\b", "", n_up)
         nombres = clean_spaces(n_up.title() if n_up else nombres)
 
+    objeto_empresa = get_str(p, "objeto_empresa", "objetoEmpresa", default="")
+
     ocupacion = get_str(p, "ocupacion", "profesionOcupacion", default="")
     otros_ocupaciones = get_str(p, "otros_ocupaciones", "otrosOcupaciones", default="")
 
@@ -76,6 +78,7 @@ def _extract_base_fields(p: dict) -> dict:
         "apellido_materno": ap_mat,
         "razon_social": razon_social,
         "ciiu_in": ciiu_in,
+        "objeto_empresa": objeto_empresa,
         "pais": pais,
         "ocupacion": ocupacion,
         "otros_ocupaciones": otros_ocupaciones,
@@ -252,7 +255,9 @@ def normalize_participante(
         payload_original=p,
     )
 
-    return {
+    es_juridica = (base["tipo_persona"] or "").strip().upper() == "JURIDICA"
+
+    result = {
         "tipo_persona": base["tipo_persona"],
         "nombres": base["nombres"],
         "apellido_paterno": base["apellido_paterno"],
@@ -261,7 +266,14 @@ def normalize_participante(
 
         "ciiu": ciiu,
         "co_ciiu": (co_ciiu or None),
+    }
 
+    # ✅ objeto_empresa SOLO para personas jurídicas (texto, máx 2000 chars)
+    if es_juridica:
+        objeto_raw = str(base.get("objeto_empresa") or "")[:2000]
+        result["objeto_empresa"] = objeto_raw
+
+    result.update({
         "pais": base["pais"],
         "co_pais": to_int_or_none(base["co_pais"]),
         "documento": documento,
@@ -278,4 +290,6 @@ def normalize_participante(
         "numeroAcciones_participaciones": int(base["numeroAcciones_participaciones"] or 0),
         "acciones_suscritas": int(base["acciones_suscritas"] or 0),
         "monto_aportado": float(base["monto_aportado"] or 0.0),
-    }
+    })
+
+    return result
