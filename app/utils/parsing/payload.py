@@ -131,5 +131,17 @@ def normalize_payload(
         
     obj["bienes"] = bienes_norm
 
+    # ✅ CONSTITUCION: incluir objeto_empresa (texto hasta 2000 chars)
+    es_constitucion = "CONSTITUCION" in (nombre_servicio or "").upper()
+    if es_constitucion:
+        objeto_empresa_raw = obj.get("objeto_empresa", None)
+        if objeto_empresa_raw is not None:
+            obj["objeto_empresa"] = str(objeto_empresa_raw)[:2000]
+        else:
+            obj["objeto_empresa"] = ""
+    else:
+        # Si no es constitución, eliminar el campo si acaso vino
+        obj.pop("objeto_empresa", None)
+
     # ✅ al final, convierte todo a MAYÚSCULAS
     return uppercase_payload(obj)
