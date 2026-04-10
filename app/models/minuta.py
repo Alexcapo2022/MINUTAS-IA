@@ -93,23 +93,23 @@ class ValorMinuta(Base):
     id_valor = Column(Integer, primary_key=True, autoincrement=True)
     id_consulta = Column(Integer, ForeignKey("p_consulta_minuta.id_consulta"), nullable=False)
     
-    tipo_valor = Column(String(20), nullable=True) # TRANSFERENCIA, MEDIO_PAGO
+    tipo_registro = Column(String(20), nullable=True) # TRANSFERENCIA, MEDIO_PAGO
     
-    # Común
-    moneda = Column(String(10), nullable=True)
-    co_moneda = Column(Integer, nullable=True)
-    monto = Column(Numeric(18, 2), nullable=True)
+    # Específico Transferencia (tr_)
+    tr_moneda = Column(String(10), nullable=True)
+    tr_co_moneda = Column(Integer, nullable=True)
+    tr_monto = Column(Numeric(18, 2), nullable=True)
+    tr_forma_pago = Column(String(100), nullable=True)
+    tr_oportunidad_pago = Column(String(100), nullable=True)
     
-    # Específico Transferencia
-    forma_pago = Column(String(100), nullable=True)
-    oportunidad_pago = Column(String(100), nullable=True)
-    
-    # Específico Medio Pago
-    medio_pago_nombre = Column(String(100), nullable=True) # campo medio_pago
-    valor_bien = Column(Numeric(18, 2), nullable=True)
-    fecha_pago = Column(Date, nullable=True)
-    bancos = Column(String(100), nullable=True)
-    documento_pago = Column(String(100), nullable=True)
+    # Específico Medio Pago (mp_)
+    mp_nombre = Column(String(100), nullable=True) # campo medio_pago
+    mp_moneda = Column(String(10), nullable=True)
+    mp_co_moneda = Column(Integer, nullable=True)
+    mp_valor_bien = Column(Numeric(18, 2), nullable=True)
+    mp_fecha_pago = Column(Date, nullable=True)
+    mp_bancos = Column(String(100), nullable=True)
+    mp_documento_pago = Column(String(100), nullable=True)
 
     # Relación back
     consulta = relationship("ConsultaMinuta", back_populates="valores")

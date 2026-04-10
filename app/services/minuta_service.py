@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from app.repositories.prompt_repository import PromptRepository
 from app.repositories.ciiu_repository import CiiuRepository
+from app.repositories.minuta_repository import MinutaRepository
 from app.repositories.catalogos_repository import (
     PaisRepository,
     TipoDocumentoRepository,
@@ -32,6 +33,7 @@ class MinutaService:
         self.db = db
         self.prompt_repo = PromptRepository(db)
         self.ciiu_repo = CiiuRepository(db)
+        self.minuta_repo = MinutaRepository(db)
         self.ai = OpenAIService()
 
     async def extract(
@@ -45,6 +47,11 @@ class MinutaService:
 
         # 1) Texto del archivo
         contenido = await get_text_from_upload(file)
+        
+        # Capturamos el binario para persistencia posterior
+        await file.seek(0)
+        docx_bytes = await file.read()
+        
         t1 = time.perf_counter()
         print(
             f"[MINUTA] t1(get_text)={_ms(t1-t0)}ms"
@@ -99,7 +106,7 @@ class MinutaService:
         base_payload = CanonicalPayload()
         base_payload.acto.nombre_servicio = nombre_servicio
         if fecha_minuta_hint:
-            base_payload.acto.fechaMinuta = fecha_minuta_hint
+            base_payload.acto.fecha_minuta = fecha_minuta_hint
         t4 = time.perf_counter()
         print(f"[MINUTA] t4(base_payload)={_ms(t4-t0)}ms")
 
@@ -126,20 +133,9 @@ class MinutaService:
         t6 = time.perf_counter()
         print(f"[MINUTA] trace={trace_id} t6(llm_extract_json)={_ms(t6-t0)}ms")
 
-        # print("\n[MINUTA] RAW (parsed JSON) clipped:")
-        # print(_clip_obj(raw, 2500))
-
-        # (unwrap) parte de etapa 6/7, pero lo medimos aparte para ver si afecta
-        t0 = time.perf_counter()
-        llm_payload = self._extract_payload_object(raw)
-        t6b = time.perf_counter()
-        print(f"[MINUTA] t6b(unwrap_payload)={_ms(t6b-t0)}ms")
-
-        # print("\n[MINUTA] llm_payload (after unwrap) clipped:")
-        # print(_clip_obj(llm_payload, 2500))
-
         # 7) Merge base + LLM
         t0 = time.perf_counter()
+        llm_payload = self._extract_payload_object(raw)
         merged_dict = self._deep_merge_dict(
             base_payload.model_dump(by_alias=True),
             llm_payload,
@@ -152,42 +148,24 @@ class MinutaService:
         try:
             canonical = CanonicalPayload.model_validate(merged_dict)
         except ValidationError as e:
-            t8_err = time.perf_counter()
-            print(f"[MINUTA] t8(pydantic_validate)={_ms(t8_err-t0)}ms (FAILED)")
-            print("\n[MINUTA] VALIDATION ERROR:", e.errors())
             raise HTTPException(
                 status_code=422,
-                detail={
-                    "message": "El payload devuelto no cumple el schema estándar",
-                    "errors": e.errors(),
-                },
+                detail={"message": "El payload devuelto no cumple el schema estándar", "errors": e.errors()},
             )
         t8 = time.perf_counter()
         print(f"[MINUTA] t8(pydantic_validate)={_ms(t8-t0)}ms")
 
         # 9) Normalización final (con catálogos)
-        # Nota: aquí normalmente está el cuello si haces muchas búsquedas a BD por cada campo.
-        t0 = time.perf_counter()
         pais_repo = PaisRepository(self.db)
         doc_repo = TipoDocumentoRepository(self.db)
         ocup_repo = OcupacionRepository(self.db)
         ec_repo = EstadoCivilRepository(self.db)
         moneda_repo = MonedaRepository(self.db)
         zona_repo = ZonaRegistralRepository(self.db)
-        t9a = time.perf_counter()
-        print(f"[MINUTA] t9a(init_repos)={_ms(t9a-t0)}ms")
-
-        t0 = time.perf_counter()
+        
         payload_dump = canonical.model_dump(by_alias=True)
-
-        # intenta leer el servicio desde el payload ya “unwrappeado”
-        acto = (payload_dump.get("payload", payload_dump).get("acto") or {}) if isinstance(payload_dump, dict) else {}
-        nombre_servicio = (acto.get("nombre_servicio") or "").strip()
-
-        print(f"[MINUTA] normalize_payload input: has_wrapper={'payload' in payload_dump if isinstance(payload_dump, dict) else False}")
-        print(f"[MINUTA] normalize_payload nombre_servicio='{nombre_servicio}'")
-
-        min_otro = int(getattr(servicio_obj, "min_otro", 0) or 0)
+        acto_p = (payload_dump.get("payload", payload_dump).get("acto") or {})
+        nombre_servicio_p = (acto_p.get("nombre_servicio") or "").strip()
 
         cleaned = normalize_payload(
             payload_dump,
@@ -199,54 +177,30 @@ class MinutaService:
             moneda_repo=moneda_repo,
             zona_repo=zona_repo,
             texto_contexto=contenido,
-            nombre_servicio=nombre_servicio,   # ✅ CLAVE para CONTADO
-            min_otro=min_otro,
+            nombre_servicio=nombre_servicio_p,
+            min_otro=int(getattr(servicio_obj, "min_otro", 0) or 0),
         )
 
-        # --- DEBUG MONEDA ---
-        try:
-            obj = cleaned.get("payload", cleaned)
-
-            t0_tr = ((obj.get("valores", {}) or {}).get("transferencia", []) or [{}])[0] or {}
-            t0_mp = ((obj.get("valores", {}) or {}).get("medioPago", []) or [{}])[0] or {}
-
-            print("[MINUTA] DEBUG MONEDA transferencia[0]:",
-                f"moneda='{t0_tr.get('moneda')}'",
-                f"co_moneda='{t0_tr.get('co_moneda')}'",
-                f"monto='{t0_tr.get('monto')}'")
-
-            print("[MINUTA] DEBUG MONEDA medioPago[0]:",
-                f"moneda='{t0_mp.get('moneda')}'",
-                f"co_moneda='{t0_mp.get('co_moneda')}'",
-                f"medio_pago='{t0_mp.get('medio_pago')}'")
-
-        except Exception as e:
-            print(f"[MINUTA] DEBUG MONEDA error => {e}")
-
-        t9 = time.perf_counter()
-        print(f"[MINUTA] t9(normalize_payload)={_ms(t9-t0)}ms")
-
-        # print("\n[MINUTA] cleaned clipped:")
-        # print(_clip_obj(cleaned, 2500))
-
-        # unwrap final (post-9)
-        t0 = time.perf_counter()
         final_payload = cleaned
-        while (
-            isinstance(final_payload, dict)
-            and "payload" in final_payload
-            and isinstance(final_payload["payload"], dict)
-        ):
+        while isinstance(final_payload, dict) and "payload" in final_payload:
             final_payload = final_payload["payload"]
 
         if isinstance(final_payload, dict) and "co_cnl" in final_payload:
             final_payload.pop("co_cnl", None)
 
-        t9b = time.perf_counter()
-        print(f"[MINUTA] t9b(final_unwrap_cleanup)={_ms(t9b-t0)}ms")
-
         t_total1 = time.perf_counter()
         print(f"[MINUTA] TOTAL={_ms(t_total1 - t_total0)}ms\n")
+
+        # 10) Persistencia Histórica
+        try:
+            self.minuta_repo.save_full_minuta(
+                payload=final_payload,
+                docx_bytes=docx_bytes,
+                co_cnl=co_cnl,
+                estado="EXITO"
+            )
+        except Exception as e:
+            print(f"[MINUTA] Error al guardar histórico (no crítico): {e}")
 
         return {
             "co_cnl": co_cnl,
@@ -254,48 +208,27 @@ class MinutaService:
         }
 
     def _extract_payload_object(self, raw: dict) -> dict:
-        if not isinstance(raw, dict):
-            return {}
-
+        if not isinstance(raw, dict): return {}
         obj = raw
-        while isinstance(obj, dict) and "payload" in obj and isinstance(obj["payload"], dict):
+        while isinstance(obj, dict) and "payload" in obj:
             obj = obj["payload"]
-
-        return obj if isinstance(obj, dict) else {}
+        return obj
 
     def _deep_merge_dict(self, base: dict, incoming: dict) -> dict:
-        if not isinstance(base, dict) or not isinstance(incoming, dict):
-            return base
-
+        if not isinstance(base, dict) or not isinstance(incoming, dict): return base
         out = dict(base)
-
         for k, v in incoming.items():
-            if k not in out:
-                out[k] = v
-                continue
-
-            if isinstance(out[k], dict) and isinstance(v, dict):
+            if k not in out: out[k] = v
+            elif isinstance(out[k], dict) and isinstance(v, dict):
                 out[k] = self._deep_merge_dict(out[k], v)
-                continue
-
-            if isinstance(out[k], list) and isinstance(v, list):
+            elif isinstance(out[k], list) and isinstance(v, list):
                 out[k] = v if len(v) > 0 else out[k]
-                continue
-
-            if self._is_not_empty(v):
-                out[k] = v
-
+            elif self._is_not_empty(v): out[k] = v
         return out
 
     def _is_not_empty(self, v) -> bool:
-        if v is None:
-            return False
-        if isinstance(v, str):
-            return v.strip() != ""
-        if isinstance(v, (int, float)):
-            return True   # 0 también cuenta
-        if isinstance(v, list):
-            return len(v) > 0
-        if isinstance(v, dict):
-            return len(v) > 0
+        if v is None: return False
+        if isinstance(v, str): return v.strip() != ""
+        if isinstance(v, (int, float)): return True
+        if isinstance(v, (list, dict)): return len(v) > 0
         return True

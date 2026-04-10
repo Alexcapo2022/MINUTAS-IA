@@ -1,0 +1,150 @@
+from sqlalchemy.orm import Session
+from app.models.minuta import ConsultaMinuta, ParticipanteMinuta, ValorMinuta, BienMinuta
+from app.utils.date_utils import parse_optional_date
+import logging
+
+logger = logging.getLogger(__name__)
+
+class MinutaRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def save_full_minuta(self, payload: dict, docx_bytes: bytes, co_cnl: str, estado: str = "EXITO") -> ConsultaMinuta:
+        """
+        Persiste el payload canónico y el archivo binario en la base de datos histórica.
+        """
+        try:
+            acto_data = payload.get("acto", {})
+            
+            # 1. Crear Cabecera (ConsultaMinuta)
+            nueva_consulta = ConsultaMinuta(
+                co_cnl=co_cnl,
+                no_servicio=acto_data.get("nombre_servicio"),
+                fe_minuta=parse_optional_date(acto_data.get("fecha_minuta")),
+                minuta_archivo=docx_bytes,
+                estado_minuta=estado
+            )
+            self.db.add(nueva_consulta)
+            self.db.flush()  # Para obtener el id_consulta
+
+            # 2. Procesar Participantes
+            participantes_group = payload.get("participantes", {})
+            for grupo_key, lista in participantes_group.items():
+                if not lista:
+                    continue
+                # grupo_key: otorgantes, beneficiarios, fiduciarios
+                grupo_name = grupo_key[:-1].upper() if grupo_key.endswith('s') else grupo_key.upper()
+                
+                for p in lista:
+                    # Si no hay nombre ni razón social, ignorar
+                    if not p.get("nombres") and not p.get("razon_social"):
+                        continue
+                        
+                    doc = p.get("documento", {})
+                    dom = p.get("domicilio", {})
+                    ubi = dom.get("ubigeo", {})
+                    
+                    nuevo_p = ParticipanteMinuta(
+                        id_consulta=nueva_consulta.id_consulta,
+                        grupo_participante=grupo_name,
+                        tipo_persona=p.get("tipo_persona"),
+                        nombres=p.get("nombres"),
+                        apellido_paterno=p.get("apellido_paterno"),
+                        apellido_materno=p.get("apellido_materno"),
+                        razon_social=p.get("razon_social"),
+                        ciiu=p.get("ciiu"),
+                        co_ciiu=p.get("co_ciiu"),
+                        objeto_empresa=p.get("objeto_empresa"),
+                        pais=p.get("pais"),
+                        co_pais=p.get("co_pais"),
+                        documento_tipo=doc.get("tipo_documento"),
+                        documento_numero=doc.get("numero_documento"),
+                        documento_co=doc.get("co_documento"),
+                        ocupacion=p.get("ocupacion"),
+                        co_ocupacion=p.get("co_ocupacion"),
+                        otros_ocupaciones=p.get("otros_ocupaciones"),
+                        estado_civil=p.get("estado_civil"),
+                        co_estado_civil=p.get("co_estado_civil"),
+                        domicilio_direccion=dom.get("direccion"),
+                        ubigeo_departamento=ubi.get("departamento"),
+                        ubigeo_provincia=ubi.get("provincia"),
+                        ubigeo_distrito=ubi.get("distrito"),
+                        genero=p.get("genero"),
+                        rol=p.get("rol"),
+                        relacion=p.get("relacion"),
+                        porcentaje_participacion=p.get("porcentaje_participacion", 0.0),
+                        nu_acciones=p.get("numeroAcciones_participaciones", 0),
+                        nu_acciones_suscritas=p.get("acciones_suscritas", 0),
+                        mo_aportado=p.get("monto_aportado", 0.0)
+                    )
+                    self.db.add(nuevo_p)
+
+            # 3. Procesar Valores (Transferencias y Medios de Pago)
+            valores_group = payload.get("valores", {})
+            
+            # 3.1 Transferencias
+            for tr in valores_group.get("transferencia", []):
+                if not tr.get("moneda") and not tr.get("monto"):
+                    continue
+                nuevo_v = ValorMinuta(
+                    id_consulta=nueva_consulta.id_consulta,
+                    tipo_registro="TRANSFERENCIA",
+                    tr_moneda=tr.get("moneda"),
+                    tr_co_moneda=tr.get("co_moneda"),
+                    tr_monto=tr.get("monto"),
+                    tr_forma_pago=tr.get("forma_pago"),
+                    tr_oportunidad_pago=tr.get("oportunidad_pago")
+                )
+                self.db.add(nuevo_v)
+                
+            # 3.2 Medios de Pago
+            for mp in valores_group.get("medioPago", []):
+                if not mp.get("medio_pago") and not mp.get("moneda") and not mp.get("valor_bien"):
+                    continue
+                nuevo_v = ValorMinuta(
+                    id_consulta=nueva_consulta.id_consulta,
+                    tipo_registro="MEDIO_PAGO",
+                    mp_nombre=mp.get("medio_pago"),
+                    mp_moneda=mp.get("moneda"),
+                    mp_co_moneda=mp.get("co_moneda"),
+                    mp_valor_bien=mp.get("valor_bien"),
+                    mp_fecha_pago=parse_optional_date(mp.get("fecha_pago")),
+                    mp_bancos=mp.get("bancos"),
+                    mp_documento_pago=mp.get("documento_pago")
+                )
+                self.db.add(nuevo_v)
+
+            # 4. Procesar Bienes
+            for b in payload.get("bienes", []):
+                # Validar que no sea un objeto vacío
+                if not b.get("tipo_bien") and not b.get("partida_registral"):
+                    continue
+                    
+                ubi = b.get("ubigeo", {})
+                nuevo_b = BienMinuta(
+                    id_consulta=nueva_consulta.id_consulta,
+                    tipo_bien=b.get("tipo_bien"),
+                    clase_bien=b.get("clase_bien"),
+                    ubigeo_departamento=ubi.get("departamento"),
+                    ubigeo_provincia=ubi.get("provincia"),
+                    ubigeo_distrito=ubi.get("distrito"),
+                    partida_registral=b.get("partida_registral"),
+                    zona_registral=b.get("zona_registral"),
+                    co_zona_registral=b.get("co_zona_registral"),
+                    fe_adquisicion=parse_optional_date(b.get("fecha_adquisicion")),
+                    fe_minuta_bien=parse_optional_date(b.get("fecha_minuta")),
+                    opcion_bien_mueble=b.get("opcion_bien_mueble"),
+                    nu_psm=b.get("numero_psm"),
+                    otros_bienes=b.get("otros_bienes"),
+                    pais=b.get("pais"),
+                    origen_bien=b.get("origen_del_bien")
+                )
+                self.db.add(nuevo_b)
+
+            self.db.commit()
+            return nueva_consulta
+            
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"Error guardando historial de minuta: {str(e)}")
+            raise e
