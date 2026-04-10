@@ -39,8 +39,9 @@ def test_repair():
     beneficiarios = repaired["participantes"]["beneficiarios"]
     assert len(beneficiarios) == 1, f"Debería haber solo 1 beneficiario, se encontraron {len(beneficiarios)}"
     assert beneficiarios[0]["pais"] == "PERU"
-    assert beneficiarios[0].get("tipo_documento") == "RUC"
-    assert beneficiarios[0].get("numero_documento") == "20600012345"
+    # Ahora buscamos DENTRO de documento
+    assert beneficiarios[0]["documento"].get("tipo_documento") == "RUC"
+    assert beneficiarios[0]["documento"].get("numero_documento") == 20600012345
 
     print("\n✅ ¡PRUEBA EXITOSA! La lógica de reparación reconstruyó el objeto correctamente.")
 
