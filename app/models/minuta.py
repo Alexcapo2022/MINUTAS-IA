@@ -20,7 +20,7 @@ class ConsultaMinuta(Base):
 
     # Relaciones
     participantes = relationship("ParticipanteMinuta", back_populates="consulta", cascade="all, delete-orphan")
-    valores = relationship("ValorMinuta", back_populates="consulta", cascade="all, delete-orphan")
+    valores = relationship("ValorMinutaMaster", back_populates="consulta", cascade="all, delete-orphan")
     bienes = relationship("BienMinuta", back_populates="consulta", cascade="all, delete-orphan")
 
 class ParticipanteMinuta(Base):
@@ -83,36 +83,56 @@ class ParticipanteMinuta(Base):
     # Relación back
     consulta = relationship("ConsultaMinuta", back_populates="participantes")
 
-class ValorMinuta(Base):
+class ValorMinutaMaster(Base):
     """
-    Tabla auxiliar para almacenar valores (Transferencias y Medios de Pago).
-    Mapeado desde CanonicalPayload.valores.
+    Tabla Maestra para agrupar operaciones financieras (Transferencia + Medio Pago).
     """
-    __tablename__ = "a_valores_minuta"
+    __tablename__ = "a_valor_minuta"
 
     id_valor = Column(Integer, primary_key=True, autoincrement=True)
     id_consulta = Column(Integer, ForeignKey("p_consulta_minuta.id_consulta"), nullable=False)
+    tipo_registro = Column(String(20), default="VALOR")
     
-    tipo_registro = Column(String(20), nullable=True) # TRANSFERENCIA, MEDIO_PAGO
-    
-    # Específico Transferencia (tr_)
-    tr_moneda = Column(String(10), nullable=True)
-    tr_co_moneda = Column(Integer, nullable=True)
-    tr_monto = Column(Numeric(18, 2), nullable=True)
-    tr_forma_pago = Column(String(100), nullable=True)
-    tr_oportunidad_pago = Column(String(100), nullable=True)
-    
-    # Específico Medio Pago (mp_)
-    mp_nombre = Column(String(100), nullable=True) # campo medio_pago
-    mp_moneda = Column(String(10), nullable=True)
-    mp_co_moneda = Column(Integer, nullable=True)
-    mp_valor_bien = Column(Numeric(18, 2), nullable=True)
-    mp_fecha_pago = Column(Date, nullable=True)
-    mp_bancos = Column(String(100), nullable=True)
-    mp_documento_pago = Column(String(100), nullable=True)
-
-    # Relación back
+    # Relaciones
     consulta = relationship("ConsultaMinuta", back_populates="valores")
+    transferencia = relationship("ValorTransferencia", back_populates="master", uselist=False, cascade="all, delete-orphan")
+    medio_pago = relationship("ValorMedioPago", back_populates="master", uselist=False, cascade="all, delete-orphan")
+
+class ValorTransferencia(Base):
+    """
+    Detalle de la transferencia financiera.
+    """
+    __tablename__ = "a_valor_transferencia"
+
+    id_transferencia = Column(Integer, primary_key=True, autoincrement=True)
+    id_valor = Column(Integer, ForeignKey("a_valor_minuta.id_valor"), nullable=False)
+    
+    moneda = Column(String(10), nullable=True)
+    co_moneda = Column(Integer, nullable=True)
+    monto = Column(Numeric(18, 2), nullable=True)
+    forma_pago = Column(String(100), nullable=True)
+    oportunidad_pago = Column(String(100), nullable=True)
+
+    master = relationship("ValorMinutaMaster", back_populates="transferencia")
+
+class ValorMedioPago(Base):
+    """
+    Detalle del medio de pago utilizado.
+    """
+    __tablename__ = "a_valor_medio_pago"
+
+    id_medio_pago = Column(Integer, primary_key=True, autoincrement=True)
+    id_valor = Column(Integer, ForeignKey("a_valor_minuta.id_valor"), nullable=False)
+    
+    medio_pago = Column(String(100), nullable=True) # Nombre del medio
+    moneda = Column(String(10), nullable=True)
+    co_moneda = Column(Integer, nullable=True)
+    valor_bien = Column(Numeric(18, 2), nullable=True)
+    fecha_pago = Column(Date, nullable=True)
+    bancos = Column(String(100), nullable=True)
+    documento_pago = Column(String(100), nullable=True)
+
+    master = relationship("ValorMinutaMaster", back_populates="medio_pago")
 
 class BienMinuta(Base):
     """

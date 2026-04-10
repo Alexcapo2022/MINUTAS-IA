@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.minuta import ConsultaMinuta, ParticipanteMinuta, ValorMinuta, BienMinuta
+from app.models.minuta import ConsultaMinuta, ParticipanteMinuta, ValorMinutaMaster, ValorTransferencia, ValorMedioPago, BienMinuta
 from app.utils.date_utils import parse_optional_date
 import logging
 
@@ -79,39 +79,53 @@ class MinutaRepository:
                     )
                     self.db.add(nuevo_p)
 
-            # 3. Procesar Valores (Transferencias y Medios de Pago) - MERGE en misma fila
+            # 3. Procesar Valores (Jerarquía: Maestro -> Detalles)
             valores_group = payload.get("valores", {})
-            trans = valores_group.get("transferencia", [])
-            pagos = valores_group.get("medioPago", [])
+            trans_list = valores_group.get("transferencia", [])
+            pagos_list = valores_group.get("medioPago", [])
 
-            max_len = max(len(trans), len(pagos))
+            max_len = max(len(trans_list), len(pagos_list))
             for i in range(max_len):
-                t = trans[i] if i < len(trans) else {}
-                p = pagos[i] if i < len(pagos) else {}
+                t = trans_list[i] if i < len(trans_list) else {}
+                p = pagos_list[i] if i < len(pagos_list) else {}
 
                 # Si ambos están vacíos (placeholders), saltar
                 if not any(t.values()) and not any(p.values()):
                     continue
 
-                nuevo_v = ValorMinuta(
+                # 3.1 Crear el Maestro
+                maestro = ValorMinutaMaster(
                     id_consulta=nueva_consulta.id_consulta,
-                    tipo_registro="VALOR",  # Nombre genérico ya que puede tener ambos
-                    # Datos de Transferencia (tr_)
-                    tr_moneda=t.get("moneda"),
-                    tr_co_moneda=t.get("co_moneda"),
-                    tr_monto=t.get("monto"),
-                    tr_forma_pago=t.get("forma_pago"),
-                    tr_oportunidad_pago=t.get("oportunidad_pago"),
-                    # Datos de Medio Pago (mp_)
-                    mp_nombre=p.get("medio_pago"),
-                    mp_moneda=p.get("moneda"),
-                    mp_co_moneda=p.get("co_moneda"),
-                    mp_valor_bien=p.get("valor_bien"),
-                    mp_fecha_pago=parse_optional_date(p.get("fecha_pago")),
-                    mp_bancos=p.get("bancos"),
-                    mp_documento_pago=p.get("documento_pago")
+                    tipo_registro="VALOR"
                 )
-                self.db.add(nuevo_v)
+                self.db.add(maestro)
+                self.db.flush()  # Para obtener el id_valor generado
+
+                # 3.2 Crear Detalle de Transferencia si hay data
+                if any(t.values()):
+                    nueva_t = ValorTransferencia(
+                        id_valor=maestro.id_valor,
+                        moneda=t.get("moneda"),
+                        co_moneda=t.get("co_moneda"),
+                        monto=t.get("monto"),
+                        forma_pago=t.get("forma_pago"),
+                        oportunidad_pago=t.get("oportunidad_pago")
+                    )
+                    self.db.add(nueva_t)
+
+                # 3.3 Crear Detalle de Medio de Pago si hay data
+                if any(p.values()):
+                    nuevo_p = ValorMedioPago(
+                        id_valor=maestro.id_valor,
+                        medio_pago=p.get("medio_pago"),
+                        moneda=p.get("moneda"),
+                        co_moneda=p.get("co_moneda"),
+                        valor_bien=p.get("valor_bien"),
+                        fecha_pago=parse_optional_date(p.get("fecha_pago")),
+                        bancos=p.get("bancos"),
+                        documento_pago=p.get("documento_pago")
+                    )
+                    self.db.add(nuevo_p)
 
             # 4. Procesar Bienes
             for b in payload.get("bienes", []):
