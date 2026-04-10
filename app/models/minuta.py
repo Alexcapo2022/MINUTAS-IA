@@ -43,7 +43,7 @@ class ParticipanteMinuta(Base):
     razon_social = Column(String(255), nullable=True)
     
     # Actividad Económica
-    ciiu = Column(String(20), nullable=True)
+    ciiu = Column(String(255), nullable=True)
     co_ciiu = Column(Integer, nullable=True)
     objeto_empresa = Column(Text, nullable=True)
     
