@@ -27,49 +27,63 @@ def repair_collapsed_json(obj: any) -> any:
     """
     Detecta si el JSON se 'desinfló' y convirtió objetos en listas de fragmentos.
     Ej: "participantes": [ {"nombres": "A"}, "pais: PERU", "co_pais: 1" ]
-    Lo reconstruye a: "participantes": [ {"nombres": "A", "pais": "PERU", "co_pais": 1} ]
     """
     if isinstance(obj, list):
         new_list = []
-        last_dict = None
-        
+        current_obj = None
+        # stack para manejar anidamiento en fragmentos (ej: documento: { )
+        stack = [] 
+
         for item in obj:
             if isinstance(item, dict):
-                # Si es un dict, lo agregamos y lo marcamos como el 'actual' para recibir fragmentos
-                last_dict = repair_collapsed_json(item)
-                new_list.append(last_dict)
-            elif isinstance(item, str) and (":" in item or "\": " in item):
-                # Es un fragmento (ej: "pais: PERU" o "pais\": \"PERU\"")
-                if last_dict is not None:
-                    _merge_fragment_into_dict(last_dict, item)
+                current_obj = repair_collapsed_json(item)
+                new_list.append(current_obj)
+                stack = [current_obj]
+            elif isinstance(item, str):
+                s = item.strip().replace('\\"', '"').rstrip(",")
+                
+                # Caso A: Cierre de objeto "}"
+                if s == "}":
+                    if len(stack) > 1: stack.pop()
+                    continue
+                
+                # Caso B: Apertura de objeto anidado "key": {
+                match_nest = re.search(r'"?([^":]+)"?\s*:\s*\{', s)
+                if match_nest:
+                    key = match_nest.group(1).strip().strip('"')
+                    if stack:
+                        new_nested = {}
+                        stack[-1][key] = new_nested
+                        stack.append(new_nested)
+                    continue
+                
+                # Caso C: Campo simple "key": "value"
+                match_kv = re.search(r'"?([^":]+)"?\s*:\s*(.*)', s)
+                if match_kv:
+                    key = match_kv.group(1).strip().strip('"')
+                    val = match_kv.group(2).strip().strip('"')
+                    
+                    if val.lower() == "null": val = None
+                    elif val.replace(".","",1).isdigit(): 
+                        val = float(val) if "." in val else int(val)
+                    
+                    if stack:
+                        stack[-1][key] = val
+                    else:
+                        current_obj = {key: val}
+                        new_list.append(current_obj)
+                        stack = [current_obj]
                 else:
-                    # Si no hay dict previo, creamos uno nuevo
-                    last_dict = {}
-                    _merge_fragment_into_dict(last_dict, item)
-                    new_list.append(last_dict)
+                    # No parece fragmento, agregamos como string normal si no es una llave suelta
+                    if s not in ["{", "[", "]", "}"]:
+                        new_list.append(item)
             else:
-                # Cualquier otra cosa (string normal, número, etc)
                 new_list.append(repair_collapsed_json(item))
-                last_dict = None
+                stack = []
+
         return new_list
 
     if isinstance(obj, dict):
         return {k: repair_collapsed_json(v) for k, v in obj.items()}
 
     return obj
-
-def _merge_fragment_into_dict(target: dict, fragment: str):
-    """
-    Parsea un fragmento tipo 'llave: valor' e intenta meterlo al dict.
-    """
-    # Limpiar escapes y comas sobrantes
-    clean = fragment.replace('\\"', '"').strip().rstrip(",")
-    
-    # Caso 1: "key": "value" o "key": value
-    match = re.search(r'"?([^":]+)"?\s*:\s*(.*)', clean)
-    if match:
-        key = match.group(1).strip().strip('"')
-        val = match.group(2).strip().strip('"')
-        if val.lower() == "null": val = None
-        elif val.isdigit(): val = int(val)
-        target[key] = val
