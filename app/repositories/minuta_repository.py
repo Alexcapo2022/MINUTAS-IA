@@ -79,38 +79,37 @@ class MinutaRepository:
                     )
                     self.db.add(nuevo_p)
 
-            # 3. Procesar Valores (Transferencias y Medios de Pago)
+            # 3. Procesar Valores (Transferencias y Medios de Pago) - MERGE en misma fila
             valores_group = payload.get("valores", {})
-            
-            # 3.1 Transferencias
-            for tr in valores_group.get("transferencia", []):
-                if not tr.get("moneda") and not tr.get("monto"):
+            trans = valores_group.get("transferencia", [])
+            pagos = valores_group.get("medioPago", [])
+
+            max_len = max(len(trans), len(pagos))
+            for i in range(max_len):
+                t = trans[i] if i < len(trans) else {}
+                p = pagos[i] if i < len(pagos) else {}
+
+                # Si ambos están vacíos (placeholders), saltar
+                if not any(t.values()) and not any(p.values()):
                     continue
+
                 nuevo_v = ValorMinuta(
                     id_consulta=nueva_consulta.id_consulta,
-                    tipo_registro="TRANSFERENCIA",
-                    tr_moneda=tr.get("moneda"),
-                    tr_co_moneda=tr.get("co_moneda"),
-                    tr_monto=tr.get("monto"),
-                    tr_forma_pago=tr.get("forma_pago"),
-                    tr_oportunidad_pago=tr.get("oportunidad_pago")
-                )
-                self.db.add(nuevo_v)
-                
-            # 3.2 Medios de Pago
-            for mp in valores_group.get("medioPago", []):
-                if not mp.get("medio_pago") and not mp.get("moneda") and not mp.get("valor_bien"):
-                    continue
-                nuevo_v = ValorMinuta(
-                    id_consulta=nueva_consulta.id_consulta,
-                    tipo_registro="MEDIO_PAGO",
-                    mp_nombre=mp.get("medio_pago"),
-                    mp_moneda=mp.get("moneda"),
-                    mp_co_moneda=mp.get("co_moneda"),
-                    mp_valor_bien=mp.get("valor_bien"),
-                    mp_fecha_pago=parse_optional_date(mp.get("fecha_pago")),
-                    mp_bancos=mp.get("bancos"),
-                    mp_documento_pago=mp.get("documento_pago")
+                    tipo_registro="VALOR",  # Nombre genérico ya que puede tener ambos
+                    # Datos de Transferencia (tr_)
+                    tr_moneda=t.get("moneda"),
+                    tr_co_moneda=t.get("co_moneda"),
+                    tr_monto=t.get("monto"),
+                    tr_forma_pago=t.get("forma_pago"),
+                    tr_oportunidad_pago=t.get("oportunidad_pago"),
+                    # Datos de Medio Pago (mp_)
+                    mp_nombre=p.get("medio_pago"),
+                    mp_moneda=p.get("moneda"),
+                    mp_co_moneda=p.get("co_moneda"),
+                    mp_valor_bien=p.get("valor_bien"),
+                    mp_fecha_pago=parse_optional_date(p.get("fecha_pago")),
+                    mp_bancos=p.get("bancos"),
+                    mp_documento_pago=p.get("documento_pago")
                 )
                 self.db.add(nuevo_v)
 
