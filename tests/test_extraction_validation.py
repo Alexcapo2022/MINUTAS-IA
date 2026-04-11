@@ -18,11 +18,10 @@ class TestExtractionValidation(unittest.TestCase):
             "participantes": {
                 "otorgantes": [
                     {
-                        "nombres": "JUAN PEREZ",
-                        "documento": {
-                            "tipo_documento": "DNI"
-                        }
+                        "nombres": "JUAN PEREZ"
                     },
+                    "documento\": { ", # Fragmento que abre el contexto
+                    "tipo_documento\": \"DNI\", ",
                     "numero_documento\": \"12345678\"",
                     "}", # Cierre de documento
                     "domicilio\": { ",
