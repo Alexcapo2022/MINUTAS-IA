@@ -48,9 +48,9 @@ def repair_collapsed_json(obj: any) -> any:
                     continue
                 
                 # Caso B: Apertura de objeto anidado "key": {
-                match_nest = re.search(r'"?([^":]+)"?\s*:\s*\{', s)
+                match_nest = re.search(r'([^":]+)\s*:\s*\{', s)
                 if match_nest:
-                    key = match_nest.group(1).strip().strip('"')
+                    key = match_nest.group(1).replace('\\', '').replace('"', '').strip()
                     if stack:
                         new_nested = {}
                         stack[-1][key] = new_nested
@@ -58,10 +58,10 @@ def repair_collapsed_json(obj: any) -> any:
                     continue
                 
                 # Caso C: Campo simple "key": "value"
-                match_kv = re.search(r'"?([^":]+)"?\s*:\s*(.*)', s)
+                match_kv = re.search(r'([^":]+)\s*:\s*(.*)', s)
                 if match_kv:
-                    key = match_kv.group(1).strip().strip('"')
-                    val = match_kv.group(2).strip().strip('"')
+                    key = match_kv.group(1).replace('\\', '').replace('"', '').strip()
+                    val = match_kv.group(2).replace('\\', '').replace('"', '').strip()
                     
                     if val.lower() == "null": val = None
                     elif val.replace(".","",1).isdigit(): 
