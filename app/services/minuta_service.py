@@ -192,6 +192,7 @@ class MinutaService:
         print(f"[MINUTA] TOTAL={_ms(t_total1 - t_total0)}ms\n")
 
         # 10) Persistencia Histórica
+        id_consulta_out = None
         try:
             audit_dict = {
                 "raw_json": telemetry.get("raw_text"),
@@ -201,15 +202,19 @@ class MinutaService:
                 "latency_ms": telemetry.get("latency_ms"),
                 "metadata_json": {"trace_id": trace_id}
             }
-            self.minuta_repo.save_full_minuta(
+            consulta_obj = self.minuta_repo.save_full_minuta(
                 payload=final_payload,
                 docx_bytes=docx_bytes,
                 co_cnl=co_cnl,
                 estado="EXITO",
                 audit_data=audit_dict
             )
+            id_consulta_out = consulta_obj.id_consulta
         except Exception as e:
             print(f"[MINUTA] Error al guardar histórico (no crítico): {e}")
+            
+        if id_consulta_out and isinstance(final_payload, dict):
+            final_payload["id_consulta"] = id_consulta_out
 
         return {
             "co_cnl": co_cnl,
