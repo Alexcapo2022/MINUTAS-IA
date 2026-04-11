@@ -72,7 +72,7 @@ class ParticipanteMinuta(Base):
     
     # Otros
     genero = Column(String(20), nullable=True)
-    rol = Column(String(50), nullable=True)
+    rol = Column(String(255), nullable=True)
     relacion = Column(String(50), nullable=True)
     
     # Datos Financieros / Participación
