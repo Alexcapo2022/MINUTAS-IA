@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models.minuta import ConsultaMinuta, ParticipanteMinuta, ValorMinutaMaster, ValorTransferencia, ValorMedioPago, BienMinuta
+from app.models.minuta import ConsultaMinuta, ParticipanteMinuta, ValorMinutaMaster, ValorTransferencia, ValorMedioPago, BienMinuta, MinutaAuditoria
 from app.utils.date_utils import parse_optional_date
 import logging
 
@@ -9,7 +9,14 @@ class MinutaRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def save_full_minuta(self, payload: dict, docx_bytes: bytes, co_cnl: str, estado: str = "EXITO") -> ConsultaMinuta:
+    def save_full_minuta(
+        self, 
+        payload: dict, 
+        docx_bytes: bytes, 
+        co_cnl: str, 
+        estado: str = "EXITO",
+        audit_data: dict = None
+    ) -> ConsultaMinuta:
         """
         Persiste el payload canónico y el archivo binario en la base de datos histórica.
         """
@@ -154,10 +161,23 @@ class MinutaRepository:
                 )
                 self.db.add(nuevo_b)
 
+            # 5. Procesar Auditoría (NUEVA TABLA)
+            if audit_data:
+                nueva_auditoria = MinutaAuditoria(
+                    id_consulta=nueva_consulta.id_consulta,
+                    raw_json=audit_data.get("raw_json"),
+                    prompt_tokens=audit_data.get("prompt_tokens"),
+                    completion_tokens=audit_data.get("completion_tokens"),
+                    model=audit_data.get("model"),
+                    latency_ms=audit_data.get("latency_ms"),
+                    metadata_json=audit_data.get("metadata_json")
+                )
+                self.db.add(nueva_auditoria)
+
             self.db.commit()
             return nueva_consulta
             
         except Exception as e:
             self.db.rollback()
-            logger.error(f"Error guardando historial de minuta: {str(e)}")
+            logger.error(f"Error guardando historial de minuta: {e}")
             raise e

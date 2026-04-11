@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, Date, Numeric, Text, ForeignKey, Float
-from sqlalchemy.dialects.mysql import LONGBLOB
+from sqlalchemy import Column, Integer, String, DateTime, Date, Numeric, Text, ForeignKey, Float, JSON, func
+from sqlalchemy.dialects.mysql import LONGBLOB, LONGTEXT
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.base import Base
@@ -22,6 +22,7 @@ class ConsultaMinuta(Base):
     participantes = relationship("ParticipanteMinuta", back_populates="consulta", cascade="all, delete-orphan")
     valores = relationship("ValorMinutaMaster", back_populates="consulta", cascade="all, delete-orphan")
     bienes = relationship("BienMinuta", back_populates="consulta", cascade="all, delete-orphan")
+    auditoria = relationship("MinutaAuditoria", back_populates="consulta", uselist=False, cascade="all, delete-orphan")
 
 class ParticipanteMinuta(Base):
     """
@@ -122,17 +123,37 @@ class ValorMedioPago(Base):
     __tablename__ = "a_valor_medio_pago"
 
     id_medio_pago = Column(Integer, primary_key=True, autoincrement=True)
-    id_valor = Column(Integer, ForeignKey("a_valor_minuta.id_valor"), nullable=False)
+    id_valor = Column(Integer, ForeignKey("a_valor_minuta.id_valor", ondelete="CASCADE"), nullable=False)
     
-    medio_pago = Column(String(100), nullable=True) # Nombre del medio
-    moneda = Column(String(10), nullable=True)
-    co_moneda = Column(Integer, nullable=True)
-    valor_bien = Column(Numeric(18, 2), nullable=True)
-    fecha_pago = Column(Date, nullable=True)
-    bancos = Column(String(100), nullable=True)
-    documento_pago = Column(String(100), nullable=True)
+    medio_pago = Column(String(100))
+    moneda = Column(String(10))
+    co_moneda = Column(Integer)
+    valor_bien = Column(Numeric(18, 2))
+    fecha_pago = Column(Date)
+    bancos = Column(String(100))
+    documento_pago = Column(String(100))
 
     master = relationship("ValorMinutaMaster", back_populates="medio_pago")
+
+class MinutaAuditoria(Base):
+    """
+    Tabla para auditoría profunda y telemetría de la extracción.
+    Almacena el JSON crudo de la IA para debug y métricas de consumo.
+    """
+    __tablename__ = "a_minuta_auditoria"
+
+    id_auditoria = Column(Integer, primary_key=True, autoincrement=True)
+    id_consulta = Column(Integer, ForeignKey("p_consulta_minuta.id_consulta", ondelete="CASCADE"), nullable=False)
+    
+    raw_json = Column(LONGTEXT)
+    prompt_tokens = Column(Integer)
+    completion_tokens = Column(Integer)
+    model = Column(String(50))
+    latency_ms = Column(Float)
+    metadata_json = Column(JSON)  # Para datos extra
+    fe_creacion = Column(DateTime, server_default=func.now())
+
+    consulta = relationship("ConsultaMinuta", back_populates="auditoria")
 
 class BienMinuta(Base):
     """

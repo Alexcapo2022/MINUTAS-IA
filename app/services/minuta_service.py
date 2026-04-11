@@ -129,7 +129,7 @@ class MinutaService:
         # 6) LLM
         t0 = time.perf_counter()
         trace_id = uuid.uuid4().hex[:8]
-        raw = self.ai.extract_json(final_prompt, trace_id=trace_id)
+        raw, telemetry = self.ai.extract_json(final_prompt, trace_id=trace_id)
         t6 = time.perf_counter()
         print(f"[MINUTA] trace={trace_id} t6(llm_extract_json)={_ms(t6-t0)}ms")
 
@@ -193,11 +193,20 @@ class MinutaService:
 
         # 10) Persistencia Histórica
         try:
+            audit_dict = {
+                "raw_json": telemetry.get("raw_text"),
+                "prompt_tokens": telemetry.get("prompt_tokens"),
+                "completion_tokens": telemetry.get("completion_tokens"),
+                "model": telemetry.get("model"),
+                "latency_ms": telemetry.get("latency_ms"),
+                "metadata_json": {"trace_id": trace_id}
+            }
             self.minuta_repo.save_full_minuta(
                 payload=final_payload,
                 docx_bytes=docx_bytes,
                 co_cnl=co_cnl,
-                estado="EXITO"
+                estado="EXITO",
+                audit_data=audit_dict
             )
         except Exception as e:
             print(f"[MINUTA] Error al guardar histórico (no crítico): {e}")
