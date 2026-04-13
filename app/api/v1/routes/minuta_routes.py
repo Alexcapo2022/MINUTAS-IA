@@ -26,10 +26,11 @@ async def notify_orchestrator(id_consulta: int):
 async def extract_endpoint(
     background_tasks: BackgroundTasks,
     co_cnl: str = Form(...),              # ejemplo: "0101"
+    token: str = Form(None),              # Token de seguridad para el API
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
 ):
-    payload = await extract_minuta(db=db, file=file, co_cnl=co_cnl)
+    payload = await extract_minuta(db=db, file=file, co_cnl=co_cnl, token=token)
     
     # Extraemos id_consulta para avisarle al orquestador en background
     if isinstance(payload, dict):

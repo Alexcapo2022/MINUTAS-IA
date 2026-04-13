@@ -5,6 +5,8 @@ from fastapi import UploadFile, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
+from app.models.minuta import HCredencialSeguridad, PSeguridad
+
 from app.repositories.prompt_repository import PromptRepository
 from app.repositories.ciiu_repository import CiiuRepository
 from app.repositories.minuta_repository import MinutaRepository
@@ -40,10 +42,28 @@ class MinutaService:
         self,
         file: UploadFile,
         co_cnl: str,
+        token: str = None,
         fecha_minuta_hint: str | None = None,
     ) -> dict:
         t_total0 = time.perf_counter()
         t0 = time.perf_counter()
+
+        # 0) Validar Seguridad Token
+        if not token:
+            raise HTTPException(status_code=400, detail="falta token")
+
+        credencial = self.db.query(HCredencialSeguridad).join(
+            PSeguridad, HCredencialSeguridad.co_seguridad == PSeguridad.co_seguridad
+        ).filter(
+            HCredencialSeguridad.no_token_api == token,
+            HCredencialSeguridad.in_estado == 1
+        ).first()
+
+        if not credencial:
+            raise HTTPException(status_code=400, detail="token incorrecto")
+
+        co_seguridad_val = credencial.co_seguridad
+        no_notaria_val = credencial.seguridad.name
 
         # 1) Texto del archivo
         contenido = await get_text_from_upload(file)
@@ -207,7 +227,9 @@ class MinutaService:
                 docx_bytes=docx_bytes,
                 co_cnl=co_cnl,
                 estado="EXITO",
-                audit_data=audit_dict
+                audit_data=audit_dict,
+                co_seguridad=co_seguridad_val,
+                no_notaria=no_notaria_val
             )
             id_consulta_out = consulta_obj.id_consulta
         except Exception as e:

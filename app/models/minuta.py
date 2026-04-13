@@ -16,6 +16,8 @@ class ConsultaMinuta(Base):
     fe_minuta = Column(Date, nullable=True)         # Acto.fecha_minuta
     minuta_archivo = Column(LONGBLOB, nullable=True) # Archivo DOCX en binario
     estado_minuta = Column(String(50), nullable=True) # EXITO / ERROR / PROCESANDO
+    co_seguridad = Column(Integer, nullable=True)
+    no_notaria = Column(String(255), nullable=True)
     fe_creacion = Column(DateTime, default=datetime.now)
 
     # Relaciones
@@ -191,3 +193,23 @@ class BienMinuta(Base):
 
     # Relación back
     consulta = relationship("ConsultaMinuta", back_populates="bienes")
+
+class PSeguridad(Base):
+    __tablename__ = "p_seguridad"
+
+    co_seguridad = Column(Integer, primary_key=True, autoincrement=True)
+    co_notaria = Column(Integer, nullable=True)
+    name = Column(String(255), nullable=True)
+    
+    credenciales = relationship("HCredencialSeguridad", back_populates="seguridad")
+
+class HCredencialSeguridad(Base):
+    __tablename__ = "h_credencial_seguridad"
+
+    co_credencial_seguridad = Column(Integer, primary_key=True, autoincrement=True)
+    co_seguridad = Column(Integer, ForeignKey("p_seguridad.co_seguridad"), nullable=False)
+    no_token_api = Column(Text, nullable=True)
+    in_estado = Column(Integer, nullable=True)
+    
+    seguridad = relationship("PSeguridad", back_populates="credenciales")
+

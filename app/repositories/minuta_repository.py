@@ -15,7 +15,9 @@ class MinutaRepository:
         docx_bytes: bytes, 
         co_cnl: str, 
         estado: str = "EXITO",
-        audit_data: dict = None
+        audit_data: dict = None,
+        co_seguridad: int = None,
+        no_notaria: str = None
     ) -> ConsultaMinuta:
         """
         Persiste el payload canónico y el archivo binario en la base de datos histórica.
@@ -29,7 +31,9 @@ class MinutaRepository:
                 no_servicio=acto_data.get("nombre_servicio"),
                 fe_minuta=parse_optional_date(acto_data.get("fecha_minuta")),
                 minuta_archivo=docx_bytes,
-                estado_minuta=estado
+                estado_minuta=estado,
+                co_seguridad=co_seguridad,
+                no_notaria=no_notaria
             )
             self.db.add(nueva_consulta)
             self.db.flush()  # Para obtener el id_consulta
