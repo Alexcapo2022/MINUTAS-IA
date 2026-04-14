@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from pydantic import ValidationError
 
 from app.models.minuta import HCredencialSeguridad, PSeguridad
+from app.models.servicio_cnl import ServicioCnl
+from app.models.servicio_cnl_prompt import ServicioCnlPrompt
 
 from app.repositories.prompt_repository import PromptRepository
 from app.repositories.ciiu_repository import CiiuRepository
@@ -77,17 +79,25 @@ class MinutaService:
             f"[MINUTA] t1(get_text)={_ms(t1-t0)}ms"
         )
 
-        # 2) Prompt + Servicio desde BD
+        # 2) Validar existencia del Servicio y Configuración de Prompt
         t0 = time.perf_counter()
+        
+        # Primero: ¿Existe el servicio en el maestro?
+        servicio_master = self.db.query(ServicioCnl).filter(
+            ServicioCnl.co_cnl == co_cnl,
+            ServicioCnl.in_estado == 1
+        ).first()
+        
+        if not servicio_master:
+            raise HTTPException(status_code=400, detail="servicio no disponible")
+
+        # Segundo: ¿Tiene un prompt activo configurado?
         row = self.prompt_repo.get_prompt_and_servicio_by_co_cnl(co_cnl)
         t2 = time.perf_counter()
         print(f"[MINUTA] t2(prompt_repo)={_ms(t2-t0)}ms")
 
         if not row:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No existe prompt/servicio activo para co_cnl={co_cnl}",
-            )
+            raise HTTPException(status_code=400, detail="servicio no disponible")
 
         prompt_obj = row.get("prompt") if isinstance(row, dict) else None
         nombre_servicio = (row.get("de_servicio") or "").strip() if isinstance(row, dict) else ""
