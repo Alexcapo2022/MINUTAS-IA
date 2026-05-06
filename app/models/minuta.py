@@ -19,6 +19,7 @@ class ConsultaMinuta(Base):
     co_seguridad = Column(Integer, nullable=True)
     no_notaria = Column(String(255), nullable=True)
     minuta_legasys = Column(LONGBLOB, nullable=True) # Archivo DOCX Inteligente final
+    estado_minuta_inteligente = Column(String(50), default="NO_INICIADO") # NO_INICIADO / PROCESANDO / EXITO / ERROR
     fe_creacion = Column(DateTime, default=datetime.now)
 
     # Relaciones
