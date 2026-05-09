@@ -4,6 +4,5 @@ from app.services.scan_service import ScanService
 
 class ScanController:
     @staticmethod
-    def scan_medio_pago(co_notaria: str, file: UploadFile, db: Session):
-        # Delegamos toda la lógica de negocio al Service
-        return ScanService.scan_medio_pago(co_notaria, file, db)
+    def scan_medio_pago(token: str, file: UploadFile, db: Session):
+        return ScanService.scan_medio_pago(token=token, file=file, db=db)

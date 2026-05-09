@@ -1,16 +1,32 @@
 from sqlalchemy.orm import Session
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 from app.models.scan import EscaneoMedioPago, AuditoriaEscaneo
+from app.models.minuta import HCredencialSeguridad, PSeguridad
 import time
 import uuid
 from datetime import datetime
 
 class ScanService:
     @staticmethod
-    def scan_medio_pago(co_notaria: str, file: UploadFile, db: Session):
+    def scan_medio_pago(token: str, file: UploadFile, db: Session):
         start_time = time.time()
         
+        # 0. Validar Seguridad Token y obtener co_notaria
+        credencial = db.query(HCredencialSeguridad).join(
+            PSeguridad, HCredencialSeguridad.co_seguridad == PSeguridad.co_seguridad
+        ).filter(
+            HCredencialSeguridad.no_token_api == token,
+            HCredencialSeguridad.in_estado == 1
+        ).first()
+
+        if not credencial:
+            raise HTTPException(status_code=400, detail="token incorrecto")
+
+        # Obtenemos la notaría asociada al token
+        co_notaria = str(credencial.seguridad.co_notaria)
+        
         # 1. Generar nombre único para el archivo
+        # Patrón: UUID_HHMMSS_DDMMYYYY.ext
         now = datetime.now()
         ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
         unique_filename = f"{uuid.uuid4()}_{now.strftime('%H%M%S_%d%M%Y')}.{ext}"

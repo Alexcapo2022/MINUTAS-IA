@@ -7,16 +7,12 @@ router = APIRouter()
 
 @router.post("")
 def scan_medio_pago(
-    co_notaria: str = Form(...),
     token: str = Form(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
     """
     Endpoint para escanear medios de pago usando IA.
-    Recibe la imagen, la notaría y el token de seguridad.
+    Recibe la imagen y el token de seguridad para identificar la notaría.
     """
-    # TODO: Aquí se puede meter la lógica para descifrar el token 
-    # y validar a qué notaría pertenece realmente.
-    
-    return ScanController.scan_medio_pago(co_notaria, file, db)
+    return ScanController.scan_medio_pago(token=token, file=file, db=db)
