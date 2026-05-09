@@ -63,21 +63,25 @@ class ScanService:
           "moneda": "...", // "SOLES" o "DOLARES"
           "valor_bien": "...", // El monto como string decimal, ej: "20000.00"
           "fecha_pago": "...", // En formato YYYY-MM-DD (si no encuentras el año, asume 2026)
-          "bancos": "...", // Nombre del banco (ej: BBVA, BCP, SCOTIABANK, INTERBANK). Ver reglas abajo.
+          "bancos": "...", // Nombre del BANCO DE ORIGEN (ej: BBVA, BCP, SCOTIABANK, INTERBANK). Ver reglas abajo.
           "documento_pago": "..." // El número de operación, código de voucher o número de cheque.
         }
         
-        REGLAS DE IDENTIFICACIÓN VISUAL DE BANCOS (Si no aparece el nombre explícito):
+        REGLAS DE IDENTIFICACIÓN VISUAL DE BANCOS (MUY IMPORTANTE):
+        Queremos saber el BANCO DE ORIGEN (desde dónde se envía el dinero, no a quién).
         
         1. Para BCP:
-        Identifica como BCP cuando la constancia tenga una barra superior azul intenso, botones o íconos de acción en color naranja, fondo blanco, check de éxito naranja, texto centrado de “Transferencia exitosa”, monto grande en azul, acciones “Descargar” y “Compartir” en naranja, y un botón inferior naranja redondeado. Si cumple estas características, pon directamente "BCP" en el campo "bancos".
+        Identifica como BCP cuando la constancia tenga una barra superior azul intenso, botones o íconos de acción en color naranja, fondo blanco, check de éxito naranja, texto centrado de “Transferencia exitosa”, monto grande en azul, acciones “Descargar” y “Compartir” en naranja, y un botón inferior naranja redondeado. Si cumple estas características visuales, pon "BCP" en el campo "bancos" aunque en el texto diga que se envió a Scotiabank u otro banco (como en las transferencias interbancarias).
         
         2. Para BBVA:
-        Identifica como BBVA cuando la constancia tenga una interfaz blanca y limpia, textos principales en azul marino oscuro, título superior centrado como “Transferir”, botón de cierre “X” azul en la esquina superior derecha, una tarjeta grande de color verde claro con un check verde sólido, mensaje central “Operación exitosa”, monto grande en azul, y debajo una tarjeta de detalle con campos alineados en dos columnas: etiqueta a la izquierda y valor en negrita a la derecha. Si cumple estas características, pon directamente "BBVA" en el campo "bancos".
+        Identifica como BBVA cuando la constancia tenga una interfaz blanca y limpia, textos principales en azul marino oscuro, título superior centrado como “Transferir”, botón de cierre “X” azul en la esquina superior derecha, una tarjeta grande de color verde claro con un check verde sólido, mensaje central “Operación exitosa”, monto grande en azul, y debajo una tarjeta de detalle con campos alineados en dos columnas: etiqueta a la izquierda y valor en negrita a la derecha. Si cumple estas características visuales, pon "BBVA" en el campo "bancos" aunque en el texto diga que se envió a otro banco.
+        
+        Si la imagen NO cumple con las características visuales de BCP o BBVA, entonces extrae el nombre del banco que aparezca explícitamente en el texto.
         
         El valor que devuelves en "bancos" debe ser SIEMPRE el nombre limpio del catálogo (ej: "BCP", "BBVA", "SCOTIABANK"). No uses prefijos como "Probable".
         
         Devuelve SOLO el objeto JSON, sin markdown ni texto adicional.
+
 
         """
 
