@@ -5,5 +5,6 @@ from app.api.v1.routes.scan_routes import router as scan_router
 
 router = APIRouter()
 router.include_router(minuta_router)
-router.include_router(scan_router, prefix="/scan", tags=["Scan"])
+router.include_router(scan_router)
+
 

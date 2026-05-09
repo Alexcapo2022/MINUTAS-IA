@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.controllers.scan_controller import ScanController
 
-router = APIRouter()
+# Agregamos el prefijo aquí para seguir el estándar de minuta_routes.py
+router = APIRouter(prefix="/api/v1/scan", tags=["Scan"])
 
 @router.post("")
 def scan_medio_pago(
