@@ -215,3 +215,5 @@ class HCredencialSeguridad(Base):
     
     seguridad = relationship("PSeguridad", back_populates="credenciales")
 
+
+
