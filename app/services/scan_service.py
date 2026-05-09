@@ -63,11 +63,24 @@ class ScanService:
           "moneda": "...", // "SOLES" o "DOLARES"
           "valor_bien": "...", // El monto como string decimal, ej: "20000.00"
           "fecha_pago": "...", // En formato YYYY-MM-DD (si no encuentras el año, asume 2026)
-          "bancos": "...", // Nombre del banco (ej: BBVA, BCP, SCOTIABANK, INTERBANK)
+          "bancos": "...", // Nombre del banco (ej: BBVA, BCP, SCOTIABANK, INTERBANK). Ver reglas abajo.
           "documento_pago": "..." // El número de operación, código de voucher o número de cheque.
         }
+        
+        REGLAS DE IDENTIFICACIÓN VISUAL DE BANCOS (Si no aparece el nombre explícito):
+        
+        1. Para BCP:
+        Identifica como BCP cuando la constancia tenga una barra superior azul intenso, botones o íconos de acción en color naranja, fondo blanco, check de éxito naranja, texto centrado de “Transferencia exitosa”, monto grande en azul, acciones “Descargar” y “Compartir” en naranja, y un botón inferior naranja redondeado. Si cumple estas características, pon directamente "BCP" en el campo "bancos".
+        
+        2. Para BBVA:
+        Identifica como BBVA cuando la constancia tenga una interfaz blanca y limpia, textos principales en azul marino oscuro, título superior centrado como “Transferir”, botón de cierre “X” azul en la esquina superior derecha, una tarjeta grande de color verde claro con un check verde sólido, mensaje central “Operación exitosa”, monto grande en azul, y debajo una tarjeta de detalle con campos alineados en dos columnas: etiqueta a la izquierda y valor en negrita a la derecha. Si cumple estas características, pon directamente "BBVA" en el campo "bancos".
+        
+        El valor que devuelves en "bancos" debe ser SIEMPRE el nombre limpio del catálogo (ej: "BCP", "BBVA", "SCOTIABANK"). No uses prefijos como "Probable".
+        
         Devuelve SOLO el objeto JSON, sin markdown ni texto adicional.
+
         """
+
 
         try:
             response = client.chat.completions.create(
