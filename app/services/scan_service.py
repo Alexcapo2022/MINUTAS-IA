@@ -61,11 +61,12 @@ class ScanService:
         {
           "medio_pago": "...", // Debe ser uno de: "DEPOSITO EN CUENTA", "CHEQUE DE GERENCIA", "TRANSFERENCIA DE FONDOS" según corresponda. Si es voucher de depósito -> "DEPOSITO EN CUENTA", si es cheque -> "CHEQUE DE GERENCIA", si es transferencia bancaria -> "TRANSFERENCIA DE FONDOS".
           "moneda": "...", // "SOLES" o "DOLARES"
-          "valor_bien": "...", // El monto como string decimal, ej: "20000.00"
+          "valor_bien": "...", // El monto como string decimal LIMPIO. Quita símbolos de moneda, espacios y puntos de miles. Solo debe tener UN punto para los decimales. Ej: si ves "96.735.50" debes devolver "96735.50".
           "fecha_pago": "...", // En formato YYYY-MM-DD (si no encuentras el año, asume 2026)
           "bancos": "...", // Nombre del BANCO DE ORIGEN. ¡ATENCIÓN! Si la interfaz es de BCP (barra azul, iconos naranjas), pon "BCP" obligatoriamente, ignorando el texto de destino.
           "documento_pago": "..." // El número de operación, código de voucher o número de cheque.
         }
+
         
         REGLAS DE IDENTIFICACIÓN VISUAL DE BANCOS (SÚPER CRÍTICO):
         Queremos saber el BANCO DE ORIGEN (desde dónde se envía el dinero).
@@ -156,18 +157,32 @@ class ScanService:
         elif detected_data.get("medio_pago") == "TRANSFERENCIA DE FONDOS":
             co_tipo_doc = 3
 
+        # Limpiar monto si viene con múltiples puntos (ej: 96.735.50) o comas
+        monto_str = detected_data.get("valor_bien")
+        monto_final = None
+        if monto_str:
+            monto_str = str(monto_str).replace(" ", "").replace(",", "")
+            if monto_str.count('.') > 1:
+                parts = monto_str.split('.')
+                monto_str = "".join(parts[:-1]) + "." + parts[-1]
+            try:
+                monto_final = float(monto_str)
+            except ValueError:
+                monto_final = None
+
         escaneo = EscaneoMedioPago(
             co_notaria=co_notaria,
             co_tipo_doc=co_tipo_doc, 
             url_imagen=url_imagen,
             medio_pago=detected_data.get("medio_pago"),
             moneda=detected_data.get("moneda"),
-            monto=float(detected_data.get("valor_bien")) if detected_data.get("valor_bien") else None,
+            monto=monto_final,
             fecha_pago=datetime.strptime(detected_data.get("fecha_pago"), "%Y-%m-%d").date() if detected_data.get("fecha_pago") else None,
             bancos=detected_data.get("bancos"),
             documento_pago=detected_data.get("documento_pago"),
             raw_ai_response=detected_data
         )
+
         
         db.add(escaneo)
         db.commit()
