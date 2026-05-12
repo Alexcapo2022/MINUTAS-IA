@@ -14,8 +14,6 @@ from datetime import datetime
 class ScanService:
     @staticmethod
     async def scan_medio_pago(token: str, file: UploadFile, referencia: str, db: Session):
-        print("--- INICIANDO PIPELINE DE ESCANEO ---")
-        t0 = time.time()
         start_time = time.time()
         
         # 0. Validar Seguridad Token y obtener co_notaria
@@ -30,9 +28,6 @@ class ScanService:
             raise HTTPException(status_code=400, detail="token incorrecto")
 
         notaria_val = str(credencial.seguridad.name)
-        
-        print(f"[Tracking] 1. Validar Token: {(time.time() - t0):.3f}s")
-        t0 = time.time()
         
         # 1. Generar nombre único para el archivo
         now = datetime.now()
@@ -52,18 +47,12 @@ class ScanService:
             
         url_imagen = f"/{file_path.replace(os.sep, '/')}"
         
-        print(f"[Tracking] 2. Guardar Imagen Física: {(time.time() - t0):.3f}s")
-        t0 = time.time()
-        
         # 2. Codificar imagen a Base64 para enviarla a OpenAI
         try:
             with open(file_path, "rb") as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode('utf-8')
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al procesar la imagen para IA: {str(e)}")
-
-        print(f"[Tracking] 3. Codificar Base64: {(time.time() - t0):.3f}s")
-        t0 = time.time()
 
         # 3. Llamar a OpenAI con Vision
         prompt = """
@@ -84,13 +73,13 @@ class ScanService:
         En las transferencias interbancarias, el banco de destino aparece en texto (ej. "Enviado a SCOTIABANK"), pero el banco de origen es el dueño de la app.
         
         1. Para BCP:
-        Si ves una barra superior azul intenso, botones o íconos de acción en color naranja, fondo blanco, check de éxito naranja, texto centrado de “Transferencia exitosa”, monto grande en azul, acciones “Descargar” y “Compartir” en naranja, y un botón inferior naranja redondeado:
-        ¡ESTO ES BCP! Ignora cualquier texto que diga "Enviado a [Otro Banco]". El valor en "bancos" DEBE SER "BCP". No pongas el banco de destino.
-
+        Si la imagen tiene fondo blanco, un círculo en la parte superior con un aspa/check naranja, el texto "¡Transferencia exitosa!", el monto en números grandes color azul, y opciones de "Descargar" y "Compartir" en color naranja:
+        ¡ESTO ES BCP! (Banco de Crédito del Perú). Aunque el texto más abajo diga "Enviado a SCOTIABANK" o cualquier otro banco, el origen es BCP.
+        El valor en "bancos" DEBE SER EXACTAMENTE "BCP". NUNCA extraigas el banco de destino.
         
         2. Para BBVA:
-        Si ves una interfaz blanca y limpia, textos principales en azul marino oscuro, título superior centrado como “Transferir”, botón de cierre “X” azul en la esquina superior derecha, una tarjeta grande de color verde claro con un check verde sólido, mensaje central “Operación exitosa”, y monto grande en azul marino:
-        ¡ESTO ES BBVA! Ignora cualquier otro banco mencionado. El valor en "bancos" DEBE SER "BBVA".
+        Si la imagen tiene fondo blanco, una cabecera con el texto "Transferir", una "X" azul en la esquina superior derecha para cerrar, y un recuadro o tarjeta verde claro con el texto "Operación exitosa" y un check verde sólido:
+        ¡ESTO ES BBVA! El valor en "bancos" DEBE SER EXACTAMENTE "BBVA". Ignora cualquier otro banco mencionado como destino.
         
         Si la imagen NO cumple con las características visuales de BCP o BBVA, entonces extrae el nombre del banco que aparezca explícitamente en el texto.
         
@@ -123,9 +112,6 @@ class ScanService:
                     }
                 ],
             )
-            
-            print(f"[Tracking] 4. Llamada a OpenAI (Inferencia): {(time.time() - t0):.3f}s")
-            t0 = time.time()
             
             # Extraer respuesta
             text_response = response.choices[0].message.content
@@ -164,9 +150,6 @@ class ScanService:
             db.commit()
             
             raise HTTPException(status_code=500, detail=f"Error en el procesamiento de IA: {str(e)}")
-
-        print(f"[Tracking] 5. Parsear JSON: {(time.time() - t0):.3f}s")
-        t0 = time.time()
 
         # 4. Guardar en Histórico (Éxito)
         # Mapeo de tipo_doc según medio_pago detectado
@@ -208,9 +191,6 @@ class ScanService:
         db.commit()
         db.refresh(escaneo)
         
-        print(f"[Tracking] 6. Guardar en BD (Histórico): {(time.time() - t0):.3f}s")
-        t0 = time.time()
-        
         # 5. Guardar en Auditoría (Éxito)
         duracion_ms = int((time.time() - start_time) * 1000)
         auditoria = AuditoriaEscaneo(
@@ -222,9 +202,6 @@ class ScanService:
         )
         db.add(auditoria)
         db.commit()
-        
-        print(f"[Tracking] 7. Guardar Auditoría: {(time.time() - t0):.3f}s")
-        print(f"--- FIN DEL PIPELINE (Total: {(time.time() - start_time):.3f}s) ---")
         
         return {
             "status": "success",
