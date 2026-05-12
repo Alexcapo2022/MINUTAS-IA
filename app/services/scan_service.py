@@ -27,7 +27,7 @@ class ScanService:
         if not credencial:
             raise HTTPException(status_code=400, detail="token incorrecto")
 
-        co_notaria = str(credencial.seguridad.co_notaria)
+        notaria_val = str(credencial.seguridad.name)
         
         # 1. Generar nombre único para el archivo
         now = datetime.now()
@@ -135,7 +135,7 @@ class ScanService:
             # Vamos a insertar el histórico con datos nulos para dejar rastro de la imagen subida.
             
             escaneo_fail = EscaneoMedioPago(
-                co_notaria=co_notaria,
+                notaria=notaria_val,
                 co_tipo_doc=1, 
                 url_imagen=url_imagen,
                 referencia=referencia,
@@ -173,7 +173,7 @@ class ScanService:
                 monto_final = None
 
         escaneo = EscaneoMedioPago(
-            co_notaria=co_notaria,
+            notaria=notaria_val,
             co_tipo_doc=co_tipo_doc, 
             url_imagen=url_imagen,
             referencia=referencia,
@@ -195,7 +195,7 @@ class ScanService:
         duracion_ms = int((time.time() - start_time) * 1000)
         auditoria = AuditoriaEscaneo(
             id_escaneo=escaneo.id_escaneo,
-            co_notaria=co_notaria,
+            notaria=notaria_val,
             duracion_ms=duracion_ms,
             tokens_consumidos=tokens_consumidos,
             estado="SUCCESS"
@@ -236,7 +236,7 @@ class ScanService:
         for e in escaneos:
             data.append({
                 "id_escaneo": e.id_escaneo,
-                "co_notaria": e.co_notaria,
+                "notaria": e.notaria,
                 "referencia": e.referencia,
                 "url_imagen": e.url_imagen,
                 "medio_pago": e.medio_pago,
@@ -271,16 +271,16 @@ class ScanService:
         if not credencial:
             raise HTTPException(status_code=401, detail="Token incorrecto o inactivo")
 
-        co_notaria = str(credencial.seguridad.co_notaria)
+        notaria_val = str(credencial.seguridad.name)
 
         # 1. Verificar que la imagen existe en la BD para esta notaría
         url_imagen_db = f"/assets/escaneos/{filename}"
         
-        # Buscamos si existe algun registro con esa imagen y co_notaria
+        # Buscamos si existe algun registro con esa imagen y notaria
         # Esto previene que una notaría intente acceder a la imagen de otra
         escaneo = db.query(EscaneoMedioPago).filter(
             EscaneoMedioPago.url_imagen == url_imagen_db,
-            EscaneoMedioPago.co_notaria == co_notaria
+            EscaneoMedioPago.notaria == notaria_val
         ).first()
 
         if not escaneo:

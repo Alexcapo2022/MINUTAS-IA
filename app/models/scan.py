@@ -13,7 +13,7 @@ class EscaneoMedioPago(Base):
     __tablename__ = 'h_escaneo_medio_pago'
     
     id_escaneo = Column(Integer, primary_key=True, autoincrement=True)
-    co_notaria = Column(String(50), nullable=False)
+    notaria = Column(String(255), nullable=False)
     co_tipo_doc = Column(Integer, ForeignKey('a_tipo_documento_escaneo.co_tipo_doc'), nullable=False)
     url_imagen = Column(String(255), nullable=False)
     referencia = Column(String(200), nullable=True)
@@ -34,7 +34,7 @@ class AuditoriaEscaneo(Base):
     
     id_auditoria = Column(Integer, primary_key=True, autoincrement=True)
     id_escaneo = Column(Integer, ForeignKey('h_escaneo_medio_pago.id_escaneo'), nullable=False)
-    co_notaria = Column(String(50), nullable=False)
+    notaria = Column(String(255), nullable=False)
     duracion_ms = Column(Integer, nullable=True)
     tokens_consumidos = Column(Integer, nullable=True)
     estado = Column(String(20), nullable=False) # SUCCESS, ERROR
