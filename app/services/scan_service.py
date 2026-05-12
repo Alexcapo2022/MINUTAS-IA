@@ -241,7 +241,9 @@ class ScanService:
     @staticmethod
     def get_historial(limit: int, offset: int, notaria: str, referencia: str, medio_pago: str, banco: str, fecha_desde: str, fecha_hasta: str, db: Session):
         # 1. Consultar base de datos (TODOS los registros para el administrador)
-        query = db.query(EscaneoMedioPago)
+        query = db.query(EscaneoMedioPago, AuditoriaEscaneo).outerjoin(
+            AuditoriaEscaneo, EscaneoMedioPago.id_escaneo == AuditoriaEscaneo.id_escaneo
+        )
         
         # Aplicar Filtros (Backend)
         if notaria:
@@ -274,11 +276,11 @@ class ScanService:
         total = query.count()
         
         # 3. Paginación y orden (más recientes primero)
-        escaneos = query.order_by(EscaneoMedioPago.ts_creacion.desc()).offset(offset).limit(limit).all()
+        resultados = query.order_by(EscaneoMedioPago.ts_creacion.desc()).offset(offset).limit(limit).all()
 
         # 4. Formatear respuesta
         data = []
-        for e in escaneos:
+        for e, a in resultados:
             data.append({
                 "id_escaneo": e.id_escaneo,
                 "notaria": e.notaria,
@@ -290,7 +292,13 @@ class ScanService:
                 "fecha_pago": e.fecha_pago.strftime("%Y-%m-%d") if e.fecha_pago else None,
                 "bancos": e.bancos,
                 "documento_pago": e.documento_pago,
-                "ts_creacion": e.ts_creacion.isoformat() if e.ts_creacion else None
+                "ts_creacion": e.ts_creacion.isoformat() if e.ts_creacion else None,
+                "raw_ai_response": e.raw_ai_response,
+                "estado": a.estado if a else None,
+                "tokens_consumidos": a.tokens_consumidos if a else 0,
+                "prompt_tokens": a.prompt_tokens if a else 0,
+                "completion_tokens": a.completion_tokens if a else 0,
+                "costo_usd": float(a.costo_usd) if a and a.costo_usd is not None else 0.0
             })
 
         return {
