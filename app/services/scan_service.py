@@ -63,14 +63,14 @@ class ScanService:
           "moneda": "...", // "SOLES" o "DOLARES"
           "valor_bien": "...", // El monto como string decimal LIMPIO. Quita símbolos de moneda, espacios y puntos de miles. Solo debe tener UN punto para los decimales. Ej: si ves "96.735.50" debes devolver "96735.50".
           "fecha_pago": "...", // En formato YYYY-MM-DD (si no encuentras el año, asume 2026)
-          "bancos": "...", // Nombre del BANCO DE ORIGEN. ¡ATENCIÓN! Si la interfaz es de BCP (barra azul, iconos naranjas), pon "BCP" obligatoriamente, ignorando el texto de destino.
-          "documento_pago": "..." // El número de operación, código de voucher o número de cheque.
+          "bancos": "...", // Nombre del BANCO DE ORIGEN. ¡ATENCIÓN! Sigue estrictamente las reglas visuales abajo para BCP y BBVA.
+          "documento_pago": "..." // ÚNICAMENTE el NÚMERO DE OPERACIÓN o TRANSACCIÓN. ¡NUNCA pongas un número de cuenta bancaria aquí! Si no hay un campo explícito que diga "Número de operación", "Nro. Trx" o similar, devuelve null. No uses valores como "001-103-120002005689-89" que claramente son cuentas.
         }
 
         
         REGLAS DE IDENTIFICACIÓN VISUAL DE BANCOS (SÚPER CRÍTICO):
         Queremos saber el BANCO DE ORIGEN (desde dónde se envía el dinero).
-        En las transferencias interbancarias, el banco de destino aparece en texto (ej. "Enviado a SCOTIABANK"), pero el banco de origen es el dueño de la app (BCP).
+        En las transferencias interbancarias, el banco de destino aparece en texto (ej. "Enviado a SCOTIABANK"), pero el banco de origen es el dueño de la app.
         
         1. Para BCP:
         Si ves una barra superior azul intenso, botones o íconos de acción en color naranja, fondo blanco, check de éxito naranja, texto centrado de “Transferencia exitosa”, monto grande en azul, acciones “Descargar” y “Compartir” en naranja, y un botón inferior naranja redondeado:
@@ -78,7 +78,8 @@ class ScanService:
 
         
         2. Para BBVA:
-        Identifica como BBVA cuando la constancia tenga una interfaz blanca y limpia, textos principales en azul marino oscuro, título superior centrado como “Transferir”, botón de cierre “X” azul en la esquina superior derecha, una tarjeta grande de color verde claro con un check verde sólido, mensaje central “Operación exitosa”, monto grande en azul, y debajo una tarjeta de detalle con campos alineados en dos columnas: etiqueta a la izquierda y valor en negrita a la derecha. Si cumple estas características visuales, pon "BBVA" en el campo "bancos" aunque en el texto diga que se envió a otro banco.
+        Si ves una interfaz blanca y limpia, textos principales en azul marino oscuro, título superior centrado como “Transferir”, botón de cierre “X” azul en la esquina superior derecha, una tarjeta grande de color verde claro con un check verde sólido, mensaje central “Operación exitosa”, y monto grande en azul marino:
+        ¡ESTO ES BBVA! Ignora cualquier otro banco mencionado. El valor en "bancos" DEBE SER "BBVA".
         
         Si la imagen NO cumple con las características visuales de BCP o BBVA, entonces extrae el nombre del banco que aparezca explícitamente en el texto.
         
