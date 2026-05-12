@@ -22,12 +22,26 @@ async def scan_medio_pago(
 def get_historial(
     limit: int = Query(10, ge=1, le=100, description="Cantidad de registros por página"),
     offset: int = Query(0, ge=0, description="Cantidad de registros a saltar"),
+    referencia: str = Query(None, description="Filtro parcial por referencia"),
+    medio_pago: str = Query(None, description="Filtro exacto por medio de pago"),
+    banco: str = Query(None, description="Filtro exacto por banco"),
+    fecha_desde: str = Query(None, description="Fecha de inicio (YYYY-MM-DD)"),
+    fecha_hasta: str = Query(None, description="Fecha de fin (YYYY-MM-DD)"),
     db: Session = Depends(get_db)
 ):
     """
-    Obtiene el historial de TODOS los escaneos paginado (Solo para Administrador).
+    Obtiene el historial de TODOS los escaneos paginado con filtros dinámicos (Solo para Administrador).
     """
-    return ScanController.get_historial(limit=limit, offset=offset, db=db)
+    return ScanController.get_historial(
+        limit=limit, 
+        offset=offset, 
+        referencia=referencia,
+        medio_pago=medio_pago,
+        banco=banco,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        db=db
+    )
 
 @router.get("/image/{filename}")
 def get_image(

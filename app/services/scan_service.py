@@ -221,9 +221,33 @@ class ScanService:
         }
 
     @staticmethod
-    def get_historial(limit: int, offset: int, db: Session):
+    def get_historial(limit: int, offset: int, referencia: str, medio_pago: str, banco: str, fecha_desde: str, fecha_hasta: str, db: Session):
         # 1. Consultar base de datos (TODOS los registros para el administrador)
         query = db.query(EscaneoMedioPago)
+        
+        # Aplicar Filtros (Backend)
+        if referencia:
+            query = query.filter(EscaneoMedioPago.referencia.ilike(f"%{referencia}%"))
+            
+        if medio_pago and medio_pago.strip() != "" and medio_pago != "-- Todos --":
+            query = query.filter(EscaneoMedioPago.medio_pago == medio_pago)
+            
+        if banco and banco.strip() != "" and banco != "-- Todos --":
+            query = query.filter(EscaneoMedioPago.bancos == banco)
+            
+        if fecha_desde:
+            try:
+                dt_desde = datetime.strptime(fecha_desde, "%Y-%m-%d")
+                query = query.filter(EscaneoMedioPago.ts_creacion >= dt_desde)
+            except ValueError:
+                pass
+                
+        if fecha_hasta:
+            try:
+                dt_hasta = datetime.strptime(fecha_hasta, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+                query = query.filter(EscaneoMedioPago.ts_creacion <= dt_hasta)
+            except ValueError:
+                pass
         
         # 2. Total
         total = query.count()

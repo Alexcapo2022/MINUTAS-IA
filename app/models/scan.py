@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Date, Numeric, Text, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, DateTime, Date, Numeric, Text, ForeignKey, JSON, text
 from datetime import datetime
 from app.db.base import Base
 
@@ -27,7 +27,7 @@ class EscaneoMedioPago(Base):
     documento_pago = Column(String(100), nullable=True)
     
     raw_ai_response = Column(JSON, nullable=True)
-    ts_creacion = Column(DateTime, default=datetime.utcnow)
+    ts_creacion = Column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
 
 class AuditoriaEscaneo(Base):
     __tablename__ = 'a_auditoria_escaneo'
@@ -39,4 +39,4 @@ class AuditoriaEscaneo(Base):
     tokens_consumidos = Column(Integer, nullable=True)
     estado = Column(String(20), nullable=False) # SUCCESS, ERROR
     mensaje_error = Column(Text, nullable=True)
-    ts_ejecucion = Column(DateTime, default=datetime.utcnow)
+    ts_ejecucion = Column(DateTime, server_default=text('CURRENT_TIMESTAMP'))
