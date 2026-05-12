@@ -14,6 +14,8 @@ from datetime import datetime
 class ScanService:
     @staticmethod
     async def scan_medio_pago(token: str, file: UploadFile, referencia: str, db: Session):
+        print("--- INICIANDO PIPELINE DE ESCANEO ---")
+        t0 = time.time()
         start_time = time.time()
         
         # 0. Validar Seguridad Token y obtener co_notaria
@@ -28,6 +30,9 @@ class ScanService:
             raise HTTPException(status_code=400, detail="token incorrecto")
 
         notaria_val = str(credencial.seguridad.name)
+        
+        print(f"[Tracking] 1. Validar Token: {(time.time() - t0):.3f}s")
+        t0 = time.time()
         
         # 1. Generar nombre único para el archivo
         now = datetime.now()
@@ -47,12 +52,18 @@ class ScanService:
             
         url_imagen = f"/{file_path.replace(os.sep, '/')}"
         
+        print(f"[Tracking] 2. Guardar Imagen Física: {(time.time() - t0):.3f}s")
+        t0 = time.time()
+        
         # 2. Codificar imagen a Base64 para enviarla a OpenAI
         try:
             with open(file_path, "rb") as image_file:
                 base64_image = base64.b64encode(image_file.read()).decode('utf-8')
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al procesar la imagen para IA: {str(e)}")
+
+        print(f"[Tracking] 3. Codificar Base64: {(time.time() - t0):.3f}s")
+        t0 = time.time()
 
         # 3. Llamar a OpenAI con Vision
         prompt = """
@@ -113,6 +124,9 @@ class ScanService:
                 ],
             )
             
+            print(f"[Tracking] 4. Llamada a OpenAI (Inferencia): {(time.time() - t0):.3f}s")
+            t0 = time.time()
+            
             # Extraer respuesta
             text_response = response.choices[0].message.content
             detected_data = parse_json_strict(text_response)
@@ -150,6 +164,9 @@ class ScanService:
             db.commit()
             
             raise HTTPException(status_code=500, detail=f"Error en el procesamiento de IA: {str(e)}")
+
+        print(f"[Tracking] 5. Parsear JSON: {(time.time() - t0):.3f}s")
+        t0 = time.time()
 
         # 4. Guardar en Histórico (Éxito)
         # Mapeo de tipo_doc según medio_pago detectado
@@ -191,6 +208,9 @@ class ScanService:
         db.commit()
         db.refresh(escaneo)
         
+        print(f"[Tracking] 6. Guardar en BD (Histórico): {(time.time() - t0):.3f}s")
+        t0 = time.time()
+        
         # 5. Guardar en Auditoría (Éxito)
         duracion_ms = int((time.time() - start_time) * 1000)
         auditoria = AuditoriaEscaneo(
@@ -202,6 +222,9 @@ class ScanService:
         )
         db.add(auditoria)
         db.commit()
+        
+        print(f"[Tracking] 7. Guardar Auditoría: {(time.time() - t0):.3f}s")
+        print(f"--- FIN DEL PIPELINE (Total: {(time.time() - start_time):.3f}s) ---")
         
         return {
             "status": "success",
