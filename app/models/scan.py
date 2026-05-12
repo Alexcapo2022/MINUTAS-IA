@@ -2,6 +2,13 @@ from sqlalchemy import Column, Integer, String, DateTime, Date, Numeric, Text, F
 from datetime import datetime
 from app.db.base import Base
 
+class ParametroSistema(Base):
+    __tablename__ = 'p_parametro_sistema'
+    
+    co_parametro = Column(String(50), primary_key=True)
+    valor = Column(String(255), nullable=False)
+    descripcion = Column(String(255), nullable=True)
+
 class TipoDocumentoEscaneo(Base):
     __tablename__ = 'a_tipo_documento_escaneo'
     
@@ -37,6 +44,9 @@ class AuditoriaEscaneo(Base):
     notaria = Column(String(255), nullable=False)
     duracion_ms = Column(Integer, nullable=True)
     tokens_consumidos = Column(Integer, nullable=True)
+    prompt_tokens = Column(Integer, nullable=True)
+    completion_tokens = Column(Integer, nullable=True)
+    costo_usd = Column(Numeric(10, 6), nullable=True)
     estado = Column(String(20), nullable=False) # SUCCESS, ERROR
     mensaje_error = Column(Text, nullable=True)
     ts_ejecucion = Column(DateTime, server_default=text('CURRENT_TIMESTAMP'))

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import UploadFile, HTTPException
-from app.models.scan import EscaneoMedioPago, AuditoriaEscaneo
+from app.models.scan import EscaneoMedioPago, AuditoriaEscaneo, ParametroSistema
 from app.models.minuta import HCredencialSeguridad, PSeguridad
 from app.services.openai_service import client
 from app.core.config import settings
@@ -119,14 +119,29 @@ class ScanService:
             
             usage = getattr(response, "usage", None)
             tokens_consumidos = getattr(usage, "total_tokens", 0) if usage else 0
+            prompt_tokens = getattr(usage, "prompt_tokens", 0) if usage else 0
+            completion_tokens = getattr(usage, "completion_tokens", 0) if usage else 0
+            
+            # Recuperar precios de la tabla de parámetros
+            p_input = db.query(ParametroSistema).filter_by(co_parametro='PRECIO_GPT4O_MINI_INPUT').first()
+            p_output = db.query(ParametroSistema).filter_by(co_parametro='PRECIO_GPT4O_MINI_OUTPUT').first()
+            
+            # Si no existen en BD, usamos los oficiales actuales (0.15 y 0.60 por millón)
+            precio_input = float(p_input.valor) if p_input else 0.00000015
+            precio_output = float(p_output.valor) if p_output else 0.00000060
+            
+            costo_usd = (prompt_tokens * precio_input) + (completion_tokens * precio_output)
             
         except Exception as e:
             # En caso de error, guardamos la auditoría como fallida
             duracion_ms = int((time.time() - start_time) * 1000)
             auditoria = AuditoriaEscaneo(
-                co_notaria=co_notaria,
+                notaria=notaria_val,
                 duracion_ms=duracion_ms,
                 tokens_consumidos=0,
+                prompt_tokens=0,
+                completion_tokens=0,
+                costo_usd=0.0,
                 estado="ERROR",
                 mensaje_error=str(e)
             )
@@ -198,6 +213,9 @@ class ScanService:
             notaria=notaria_val,
             duracion_ms=duracion_ms,
             tokens_consumidos=tokens_consumidos,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            costo_usd=costo_usd,
             estado="SUCCESS"
         )
         db.add(auditoria)
