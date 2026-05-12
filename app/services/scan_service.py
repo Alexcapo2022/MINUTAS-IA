@@ -276,7 +276,7 @@ class ScanService:
         total = query.count()
         
         # 3. Paginación y orden (más recientes primero)
-        resultados = query.order_by(EscaneoMedioPago.ts_creacion.desc()).offset(offset).limit(limit).all()
+        resultados = query.order_by(EscaneoMedioPago.id_escaneo.desc()).offset(offset).limit(limit).all()
 
         # 4. Formatear respuesta
         data = []
