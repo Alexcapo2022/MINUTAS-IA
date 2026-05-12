@@ -13,7 +13,7 @@ from datetime import datetime
 
 class ScanService:
     @staticmethod
-    async def scan_medio_pago(token: str, file: UploadFile, db: Session):
+    async def scan_medio_pago(token: str, file: UploadFile, referencia: str, db: Session):
         start_time = time.time()
         
         # 0. Validar Seguridad Token y obtener co_notaria
@@ -138,6 +138,7 @@ class ScanService:
                 co_notaria=co_notaria,
                 co_tipo_doc=1, 
                 url_imagen=url_imagen,
+                referencia=referencia,
                 raw_ai_response={"error": str(e)}
             )
             db.add(escaneo_fail)
@@ -175,6 +176,7 @@ class ScanService:
             co_notaria=co_notaria,
             co_tipo_doc=co_tipo_doc, 
             url_imagen=url_imagen,
+            referencia=referencia,
             medio_pago=detected_data.get("medio_pago"),
             moneda=detected_data.get("moneda"),
             monto=monto_final,
@@ -217,3 +219,76 @@ class ScanService:
                 }
             }
         }
+
+    @staticmethod
+    def get_historial(limit: int, offset: int, db: Session):
+        # 1. Consultar base de datos (TODOS los registros para el administrador)
+        query = db.query(EscaneoMedioPago)
+        
+        # 2. Total
+        total = query.count()
+        
+        # 3. Paginación y orden (más recientes primero)
+        escaneos = query.order_by(EscaneoMedioPago.ts_creacion.desc()).offset(offset).limit(limit).all()
+
+        # 4. Formatear respuesta
+        data = []
+        for e in escaneos:
+            data.append({
+                "id_escaneo": e.id_escaneo,
+                "co_notaria": e.co_notaria,
+                "referencia": e.referencia,
+                "url_imagen": e.url_imagen,
+                "medio_pago": e.medio_pago,
+                "moneda": e.moneda,
+                "monto": float(e.monto) if e.monto is not None else None,
+                "fecha_pago": e.fecha_pago.strftime("%Y-%m-%d") if e.fecha_pago else None,
+                "bancos": e.bancos,
+                "documento_pago": e.documento_pago,
+                "ts_creacion": e.ts_creacion.isoformat() if e.ts_creacion else None
+            })
+
+        return {
+            "status": "success",
+            "data": data,
+            "meta": {
+                "total": total,
+                "limit": limit,
+                "offset": offset
+            }
+        }
+
+    @staticmethod
+    def get_image(filename: str, token: str, db: Session):
+        # 0. Validar Seguridad Token y obtener co_notaria
+        credencial = db.query(HCredencialSeguridad).join(
+            PSeguridad, HCredencialSeguridad.co_seguridad == PSeguridad.co_seguridad
+        ).filter(
+            HCredencialSeguridad.no_token_api == token,
+            HCredencialSeguridad.in_estado == 1
+        ).first()
+
+        if not credencial:
+            raise HTTPException(status_code=401, detail="Token incorrecto o inactivo")
+
+        co_notaria = str(credencial.seguridad.co_notaria)
+
+        # 1. Verificar que la imagen existe en la BD para esta notaría
+        url_imagen_db = f"/assets/escaneos/{filename}"
+        
+        # Buscamos si existe algun registro con esa imagen y co_notaria
+        # Esto previene que una notaría intente acceder a la imagen de otra
+        escaneo = db.query(EscaneoMedioPago).filter(
+            EscaneoMedioPago.url_imagen == url_imagen_db,
+            EscaneoMedioPago.co_notaria == co_notaria
+        ).first()
+
+        if not escaneo:
+            raise HTTPException(status_code=403, detail="No tienes permiso para ver esta imagen o no existe")
+
+        # 2. Verificar existencia física
+        file_path = os.path.join("assets", "escaneos", filename)
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Archivo no encontrado físicamente")
+
+        return file_path

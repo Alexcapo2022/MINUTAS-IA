@@ -16,6 +16,7 @@ class EscaneoMedioPago(Base):
     co_notaria = Column(String(50), nullable=False)
     co_tipo_doc = Column(Integer, ForeignKey('a_tipo_documento_escaneo.co_tipo_doc'), nullable=False)
     url_imagen = Column(String(255), nullable=False)
+    referencia = Column(String(200), nullable=True)
     
     # Campos detectados
     medio_pago = Column(String(100), nullable=True)
