@@ -22,6 +22,7 @@ async def scan_medio_pago(
 def get_historial(
     limit: int = Query(10, ge=1, le=100, description="Cantidad de registros por página"),
     offset: int = Query(0, ge=0, description="Cantidad de registros a saltar"),
+    notaria: str = Query(None, description="Filtro parcial por notaría"),
     referencia: str = Query(None, description="Filtro parcial por referencia"),
     medio_pago: str = Query(None, description="Filtro exacto por medio de pago"),
     banco: str = Query(None, description="Filtro exacto por banco"),
@@ -35,6 +36,7 @@ def get_historial(
     return ScanController.get_historial(
         limit=limit, 
         offset=offset, 
+        notaria=notaria,
         referencia=referencia,
         medio_pago=medio_pago,
         banco=banco,

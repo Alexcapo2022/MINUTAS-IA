@@ -221,11 +221,14 @@ class ScanService:
         }
 
     @staticmethod
-    def get_historial(limit: int, offset: int, referencia: str, medio_pago: str, banco: str, fecha_desde: str, fecha_hasta: str, db: Session):
+    def get_historial(limit: int, offset: int, notaria: str, referencia: str, medio_pago: str, banco: str, fecha_desde: str, fecha_hasta: str, db: Session):
         # 1. Consultar base de datos (TODOS los registros para el administrador)
         query = db.query(EscaneoMedioPago)
         
         # Aplicar Filtros (Backend)
+        if notaria:
+            query = query.filter(EscaneoMedioPago.notaria.ilike(f"%{notaria}%"))
+            
         if referencia:
             query = query.filter(EscaneoMedioPago.referencia.ilike(f"%{referencia}%"))
             

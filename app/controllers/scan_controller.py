@@ -8,10 +8,11 @@ class ScanController:
         return await ScanService.scan_medio_pago(token=token, file=file, referencia=referencia, db=db)
 
     @staticmethod
-    def get_historial(limit: int, offset: int, referencia: str, medio_pago: str, banco: str, fecha_desde: str, fecha_hasta: str, db: Session):
+    def get_historial(limit: int, offset: int, notaria: str, referencia: str, medio_pago: str, banco: str, fecha_desde: str, fecha_hasta: str, db: Session):
         return ScanService.get_historial(
             limit=limit, 
             offset=offset, 
+            notaria=notaria,
             referencia=referencia,
             medio_pago=medio_pago,
             banco=banco,
